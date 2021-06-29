@@ -673,13 +673,13 @@ define_protocol!(753, Packet753, RawPacket753, RawPacket753Body, Packet753Kind =
         command: String,
         track_output: bool
     },
-    PlayUpdateJigsawBlock, 0x28, Play, ServerBound => PlayUpdateJigsawBlockSpec {
+    PlayUpdateJigsawBlock, 0x29, Play, ServerBound => PlayUpdateJigsawBlockSpec {
         location: IntPosition,
         attachment_type: String,
         target_pool: String,
         final_state: String
     },
-    PlayCreativeInventoryAction, 0x29, Play, ServerBound => PlayCreativeInventoryActionSpec {
+    PlayCreativeInventoryAction, 0x28, Play, ServerBound => PlayCreativeInventoryActionSpec {
         slot: i16,
         clicked_item: Slot
     },
