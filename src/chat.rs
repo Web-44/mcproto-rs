@@ -1098,7 +1098,7 @@ where
                         return Err(A::Error::custom("none for value key=action"));
                     }
                 }
-                "value" | "content" => {
+                "value" | "contents" => {
                     value = access.next_value()?;
                     if value.is_none() {
                         return Err(A::Error::custom("none for value key=value"));
