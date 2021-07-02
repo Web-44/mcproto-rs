@@ -730,15 +730,15 @@ define_protocol!(755, Packet755, RawPacket755, RawPacket755Body, Packet755Kind =
         command: String,
         track_output: bool
     },
-    PlayUpdateJigsawBlock, 0x28, Play, ServerBound => PlayUpdateJigsawBlockSpec {
+    PlayCreativeInventoryAction, 0x28, Play, ServerBound => PlayCreativeInventoryActionSpec {
+        slot: i16,
+        clicked_item: Slot
+    },
+    PlayUpdateJigsawBlock, 0x29, Play, ServerBound => PlayUpdateJigsawBlockSpec {
         location: IntPosition,
         attachment_type: String,
         target_pool: String,
         final_state: String
-    },
-    PlayCreativeInventoryAction, 0x29, Play, ServerBound => PlayCreativeInventoryActionSpec {
-        slot: i16,
-        clicked_item: Slot
     },
     PlayUpdateStructureBlock, 0x2A, Play, ServerBound => PlayUpdateStructureBlockSpec {
         location: IntPosition,
