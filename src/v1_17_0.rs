@@ -1,6 +1,11 @@
 use crate::{types::*, uuid::*, *};
-use alloc::{string::{String, ToString}, vec::Vec, borrow::ToOwned, boxed::Box};
 use alloc::fmt;
+use alloc::{
+    borrow::ToOwned,
+    // boxed::Box,
+    string::{String, ToString},
+    vec::Vec,
+};
 use fmt::Debug;
 
 #[cfg(all(test, feature = "std"))]
@@ -564,7 +569,7 @@ define_protocol!(755, Packet755, RawPacket755, RawPacket755Body, Packet755Kind =
         recipes: CountedArray<RecipeSpec, VarInt>
     },
     PlayTags, 0x66, Play, ClientBound => PlayTagsSpec {
-        tags: CountedArray<CountedArray<TagSpec, VarInt>, VarInt>
+        tags: CountedArray<TypedTagList, VarInt>
     },
 
     // play server bound
@@ -981,6 +986,19 @@ proto_int_enum!(EffectKind,
     3005 :: CopperScrapeOxidation
 );
 
+proto_str_enum!(TagType,
+    "minecraft:block" :: Block,
+    "minecraft:item" :: Item,
+    "minecraft:fluid" :: Fluid,
+    "minecraft:entity_type" :: EntityType,
+    "minecraft:game_event" :: GameEvent
+);
+
+proto_struct!(TypedTagList {
+    tag_type: TagType,
+    tags: CountedArray<TagSpec, VarInt>
+});
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct BlockChangeHorizontalPosition {
     pub rel_x: u8,
@@ -1078,7 +1096,13 @@ impl Deserialize for MultiBlockChangeRecord {
         let y = ((raw >> 4) & 0xF) as i8;
         let z = (raw & 0xF) as i8;
         let rel_position = (x, y, z).into();
-        Deserialized::ok(Self { block_id, rel_position }, data)
+        Deserialized::ok(
+            Self {
+                block_id,
+                rel_position,
+            },
+            data,
+        )
     }
 }
 
@@ -1215,9 +1239,15 @@ impl Serialize for CommandNodeSpec {
 impl Deserialize for CommandNodeSpec {
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
         let Deserialized { value: flags, data } = u8::mc_deserialize(data)?;
-        let Deserialized { value: children_indices, data } = <CountedArray<VarInt, VarInt>>::mc_deserialize(data)?;
+        let Deserialized {
+            value: children_indices,
+            data,
+        } = <CountedArray<VarInt, VarInt>>::mc_deserialize(data)?;
         let (redirect_node, data) = if flags & 0x08 != 0 {
-            let Deserialized { value: redirect_node, data } = VarInt::mc_deserialize(data)?;
+            let Deserialized {
+                value: redirect_node,
+                data,
+            } = VarInt::mc_deserialize(data)?;
             (Some(redirect_node), data)
         } else {
             (None, data)
@@ -1227,17 +1257,25 @@ impl Deserialize for CommandNodeSpec {
         use CommandNode::*;
         let Deserialized { value: node, data } = match flags & 0x03 {
             0x00 => Deserialized::ok(Root, data),
-            0x01 => Ok(CommandLiteralNodeSpec::mc_deserialize(data)?.map(move |body| Literal(body))),
-            0x02 => Ok(CommandArgumentNodeSpec::deserialize(flags & 0x10 != 0, data)?.map(move |body| Argument(body))),
-            other => panic!("impossible condition (bitmask) {}", other)
+            0x01 => {
+                Ok(CommandLiteralNodeSpec::mc_deserialize(data)?.map(move |body| Literal(body)))
+            }
+            0x02 => Ok(
+                CommandArgumentNodeSpec::deserialize(flags & 0x10 != 0, data)?
+                    .map(move |body| Argument(body)),
+            ),
+            other => panic!("impossible condition (bitmask) {}", other),
         }?;
 
-        Deserialized::ok(Self {
-            children_indices,
-            redirect_node,
-            is_executable,
-            node,
-        }, data)
+        Deserialized::ok(
+            Self {
+                children_indices,
+                redirect_node,
+                is_executable,
+                node,
+            },
+            data,
+        )
     }
 }
 
@@ -1252,7 +1290,7 @@ impl TestRandom for CommandNodeSpec {
             0 => CommandNode::Root,
             1 => CommandNode::Argument(CommandArgumentNodeSpec::test_gen_random()),
             2 => CommandNode::Literal(CommandLiteralNodeSpec::test_gen_random()),
-            other => panic!("impossible state {}", other)
+            other => panic!("impossible state {}", other),
         };
 
         Self {
@@ -1284,19 +1322,28 @@ impl CommandArgumentNodeSpec {
 
     fn deserialize(has_suggestion_types: bool, data: &[u8]) -> DeserializeResult<Self> {
         let Deserialized { value: name, data } = String::mc_deserialize(data)?;
-        let Deserialized { value: parser, data } = CommandParserSpec::mc_deserialize(data)?;
+        let Deserialized {
+            value: parser,
+            data,
+        } = CommandParserSpec::mc_deserialize(data)?;
         let (suggestions_types, data) = if has_suggestion_types {
-            let Deserialized { value: suggestions_types, data } = SuggestionsTypeSpec::mc_deserialize(data)?;
+            let Deserialized {
+                value: suggestions_types,
+                data,
+            } = SuggestionsTypeSpec::mc_deserialize(data)?;
             (Some(suggestions_types), data)
         } else {
             (None, data)
         };
 
-        Deserialized::ok(Self {
-            name,
-            parser,
-            suggestions_types,
-        }, data)
+        Deserialized::ok(
+            Self {
+                name,
+                parser,
+                suggestions_types,
+            },
+            data,
+        )
     }
 }
 
@@ -1323,9 +1370,7 @@ proto_str_enum!(SuggestionsTypeSpec,
     "minecraft:available_biomes" :: AvailableBiomes
 );
 
-proto_struct!(CommandLiteralNodeSpec {
-    name: String
-});
+proto_struct!(CommandLiteralNodeSpec { name: String });
 
 proto_str_enum!(CommandParserSpec,
     "brigadier:bool" :: Bool,
@@ -1388,7 +1433,10 @@ pub type IntegerParserProps = NumParserProps<i32>;
 
 impl<T> Copy for NumParserProps<T> where T: Copy {}
 
-impl<T> Clone for NumParserProps<T> where T: Clone {
+impl<T> Clone for NumParserProps<T>
+where
+    T: Clone,
+{
     fn clone(&self) -> Self {
         Self {
             min: self.min.clone(),
@@ -1397,19 +1445,28 @@ impl<T> Clone for NumParserProps<T> where T: Clone {
     }
 }
 
-impl<T> Debug for NumParserProps<T> where T: Debug {
+impl<T> Debug for NumParserProps<T>
+where
+    T: Debug,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NumParserProps(min={:?}, max={:?})", self.min, self.max)
     }
 }
 
-impl<T> PartialEq for NumParserProps<T> where T: PartialEq {
+impl<T> PartialEq for NumParserProps<T>
+where
+    T: PartialEq,
+{
     fn eq(&self, other: &Self) -> bool {
         other.max.eq(&self.max) && other.min.eq(&self.min)
     }
 }
 
-impl<T> Serialize for NumParserProps<T> where T: Serialize {
+impl<T> Serialize for NumParserProps<T>
+where
+    T: Serialize,
+{
     fn mc_serialize<S: Serializer>(&self, to: &mut S) -> SerializeResult {
         let mut flags: u8 = 0;
         if self.min.is_some() {
@@ -1433,7 +1490,10 @@ impl<T> Serialize for NumParserProps<T> where T: Serialize {
     }
 }
 
-impl<T> Deserialize for NumParserProps<T> where T: Deserialize {
+impl<T> Deserialize for NumParserProps<T>
+where
+    T: Deserialize,
+{
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
         let Deserialized { value: flags, data } = u8::mc_deserialize(data)?;
         let (min, data) = if flags & 0x01 != 0 {
@@ -1450,16 +1510,14 @@ impl<T> Deserialize for NumParserProps<T> where T: Deserialize {
             (None, data)
         };
 
-        let out = Self {
-            min,
-            max,
-        };
+        let out = Self { min, max };
         Deserialized::ok(out, data)
     }
 }
 
 #[cfg(all(test, feature = "std"))]
-impl<T> TestRandom for NumParserProps<T> where
+impl<T> TestRandom for NumParserProps<T>
+where
     T: TestRandom + std::cmp::PartialOrd,
     rand::distributions::Standard: rand::distributions::Distribution<T>,
 {
@@ -1485,10 +1543,7 @@ impl<T> TestRandom for NumParserProps<T> where
             }
         };
 
-        Self {
-            min,
-            max,
-        }
+        Self { min, max }
     }
 }
 
@@ -1507,9 +1562,7 @@ proto_byte_flag!(ScoreHolderFlags,
     0x01 :: is_multiple set_multiple
 );
 
-proto_struct!(RangeParserProps {
-    decimal: bool
-});
+proto_struct!(RangeParserProps { decimal: bool });
 
 proto_byte_enum!(TeamAction,
     0x00 :: Create(TeamActionCreateSpec),
@@ -1630,15 +1683,21 @@ impl Serialize for UpdateScoreSpec {
 
 impl Deserialize for UpdateScoreSpec {
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
-        let Deserialized { value: action_id, data } = u8::mc_deserialize(data)?;
-        let Deserialized { value: objective_name, data } = String::mc_deserialize(data)?;
+        let Deserialized {
+            value: action_id,
+            data,
+        } = u8::mc_deserialize(data)?;
+        let Deserialized {
+            value: objective_name,
+            data,
+        } = String::mc_deserialize(data)?;
 
-        Ok(UpdateScoreAction::deserialize_with_id(action_id, data)?.map(move |action| {
-            Self {
+        Ok(
+            UpdateScoreAction::deserialize_with_id(action_id, data)?.map(move |action| Self {
                 objective_name,
                 action,
-            }
-        }))
+            }),
+        )
     }
 }
 
@@ -1719,7 +1778,10 @@ impl Deserialize for StopSoundSpec {
         let is_sound_present = flags & 0x02 != 0;
 
         let (source, data) = if is_source_present {
-            let Deserialized { value: source, data } = SoundCategory::mc_deserialize(data)?;
+            let Deserialized {
+                value: source,
+                data,
+            } = SoundCategory::mc_deserialize(data)?;
             (Some(source), data)
         } else {
             (None, data)
@@ -1732,10 +1794,7 @@ impl Deserialize for StopSoundSpec {
             (None, data)
         };
 
-        Deserialized::ok(Self {
-            source,
-            sound,
-        }, data)
+        Deserialized::ok(Self { source, sound }, data)
     }
 }
 
@@ -1754,10 +1813,7 @@ impl TestRandom for StopSoundSpec {
             None
         };
 
-        Self {
-            source,
-            sound,
-        }
+        Self { source, sound }
     }
 }
 
@@ -1771,7 +1827,7 @@ proto_byte_enum!(GameMode,
 #[derive(Clone, Debug, PartialEq)]
 pub enum PreviousGameMode {
     NoPrevious,
-    Previous(GameMode)
+    Previous(GameMode),
 }
 
 impl PreviousGameMode {
@@ -1792,12 +1848,14 @@ impl Serialize for PreviousGameMode {
 
 impl Deserialize for PreviousGameMode {
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
-        let Deserialized{ value: id, data } = i8::mc_deserialize(data)?;
+        let Deserialized { value: id, data } = i8::mc_deserialize(data)?;
 
         use PreviousGameMode::*;
         match id {
             -1 => Deserialized::ok(NoPrevious, data),
-            other => Ok(GameMode::deserialize_with_id(other as u8, data)?.map(move |gm| Previous(gm)))
+            other => {
+                Ok(GameMode::deserialize_with_id(other as u8, data)?.map(move |gm| Previous(gm)))
+            }
         }
     }
 }
@@ -1818,7 +1876,7 @@ impl TestRandom for PreviousGameMode {
         use PreviousGameMode::*;
         match <Option<GameMode> as TestRandom>::test_gen_random() {
             Some(gamemode) => Previous(gamemode),
-            None => NoPrevious
+            None => NoPrevious,
         }
     }
 }
@@ -1900,15 +1958,20 @@ impl Deserialize for GameChangeReason {
             0x00 => Deserialized::ok(NoRespawnAvailable, data),
             0x01 => Deserialized::ok(EndRaining, data),
             0x02 => Deserialized::ok(BeginRaining, data),
-            0x03 => Ok(GameMode::deserialize_with_id(value as u8, data)?.map(move |mode| ChangeGameMode(mode))),
-            0x04 => Ok(WinGameAction::deserialize_with_id(value as u8, data)?.map(move |mode| WinGame(mode))),
-            0x05 => Ok(DemoEvent::deserialize_with_id(value as u8, data)?.map(move |mode| Demo(mode))),
+            0x03 => Ok(GameMode::deserialize_with_id(value as u8, data)?
+                .map(move |mode| ChangeGameMode(mode))),
+            0x04 => Ok(WinGameAction::deserialize_with_id(value as u8, data)?
+                .map(move |mode| WinGame(mode))),
+            0x05 => {
+                Ok(DemoEvent::deserialize_with_id(value as u8, data)?.map(move |mode| Demo(mode)))
+            }
             0x06 => Deserialized::ok(ArrowHitPlayer, data),
             0x07 => Deserialized::ok(RainLevelChange(value), data),
             0x08 => Deserialized::ok(ThunderLevelChange(value), data),
             0x09 => Deserialized::ok(PufferfishSting, data),
             0x0A => Deserialized::ok(ElderGuardianMobAppearance, data),
-            0x0B => Ok(RespawnRequestType::deserialize_with_id(value as u8, data)?.map(move |mode| Respawn(mode))),
+            0x0B => Ok(RespawnRequestType::deserialize_with_id(value as u8, data)?
+                .map(move |mode| Respawn(mode))),
             other => Err(DeserializeErr::CannotUnderstandValue(alloc::format!(
                 "invalid game change reason id {}",
                 other
@@ -1987,7 +2050,10 @@ impl Serialize for MapColumns {
 
 impl Deserialize for MapColumns {
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
-        let Deserialized { value: columns, data: rest } = u8::mc_deserialize(data)?;
+        let Deserialized {
+            value: columns,
+            data: rest,
+        } = u8::mc_deserialize(data)?;
         use MapColumns::*;
         match columns {
             0x00 => Deserialized::ok(NoUpdates, rest),
@@ -2224,18 +2290,20 @@ proto_byte_enum!(ScoreboardPosition,
 #[derive(Clone, Debug, PartialEq)]
 pub struct EntityEquipmentEntry {
     pub slot: EquipmentSlot,
-    pub item: Slot
+    pub item: Slot,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct EntityEquipmentArray {
-    data: Vec<EntityEquipmentEntry>
+    data: Vec<EntityEquipmentEntry>,
 }
 
 impl Serialize for EntityEquipmentArray {
     fn mc_serialize<S: Serializer>(&self, to: &mut S) -> SerializeResult {
         if self.data.is_empty() {
-            return Err(SerializeErr::CannotSerialize("entity equipment must be non-empty to send!".to_owned()));
+            return Err(SerializeErr::CannotSerialize(
+                "entity equipment must be non-empty to send!".to_owned(),
+            ));
         }
 
         let n = self.data.len();
@@ -2264,11 +2332,20 @@ impl Deserialize for EntityEquipmentArray {
         let mut out = Vec::new();
         let mut has_next = true;
         while has_next {
-            let Deserialized { value: raw_slot_id, data: rest } = u8::mc_deserialize(data)?;
+            let Deserialized {
+                value: raw_slot_id,
+                data: rest,
+            } = u8::mc_deserialize(data)?;
             has_next = raw_slot_id & 0x80 != 0;
             let slot_id = raw_slot_id & 0x7F;
-            let Deserialized { value: slot, data: rest } = EquipmentSlot::deserialize_with_id(slot_id, rest)?;
-            let Deserialized { value: item, data: rest } = Slot::mc_deserialize(rest)?;
+            let Deserialized {
+                value: slot,
+                data: rest,
+            } = EquipmentSlot::deserialize_with_id(slot_id, rest)?;
+            let Deserialized {
+                value: item,
+                data: rest,
+            } = Slot::mc_deserialize(rest)?;
             out.push(EntityEquipmentEntry { slot, item });
             data = rest;
         }
@@ -2316,9 +2393,9 @@ impl TestRandom for EntityEquipmentArray {
             EquipmentSlot::ArmorChestplate,
             EquipmentSlot::ArmorHelmet,
         ] {
-            out.push(EntityEquipmentEntry{
+            out.push(EntityEquipmentEntry {
                 slot: slot.clone(),
-                item: Slot::test_gen_random()
+                item: Slot::test_gen_random(),
             });
         }
 
@@ -2408,7 +2485,10 @@ impl Serialize for AdvancementDisplayFlags {
 
 impl Deserialize for AdvancementDisplayFlags {
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
-        let Deserialized { value: raw_flags, data } = i32::mc_deserialize(data)?;
+        let Deserialized {
+            value: raw_flags,
+            data,
+        } = i32::mc_deserialize(data)?;
         let has_background_texture = raw_flags & 0x01 != 0;
         let show_toast = raw_flags & 0x02 != 0;
         let hidden = raw_flags & 0x04 != 0;
@@ -2417,12 +2497,11 @@ impl Deserialize for AdvancementDisplayFlags {
             String::mc_deserialize(data)?.map(move |id| Some(id))
         } else {
             Deserialized { value: None, data }
-        }.map(move |background_texture| {
-            Self {
-                background_texture,
-                show_toast,
-                hidden,
-            }
+        }
+        .map(move |background_texture| Self {
+            background_texture,
+            show_toast,
+            hidden,
         }))
     }
 }
@@ -2701,12 +2780,12 @@ impl Deserialize for RecipeSpec {
             data,
         } = String::mc_deserialize(data)?;
 
-        Ok(Recipe::deserialize_with_id(_type.as_str(), data)?.map(move |recipe| {
-            RecipeSpec {
+        Ok(
+            Recipe::deserialize_with_id(_type.as_str(), data)?.map(move |recipe| RecipeSpec {
                 id: recipe_id,
                 recipe,
-            }
-        }))
+            }),
+        )
     }
 }
 
@@ -2755,18 +2834,30 @@ impl Serialize for RecipeCraftingShapedSpec {
 impl Deserialize for RecipeCraftingShapedSpec {
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
         let Deserialized { value: width, data } = <VarInt>::mc_deserialize(data)?;
-        let Deserialized { value: height, data } = <VarInt>::mc_deserialize(data)?;
-        let Deserialized { value: group, mut data } = <String>::mc_deserialize(data)?;
+        let Deserialized {
+            value: height,
+            data,
+        } = <VarInt>::mc_deserialize(data)?;
+        let Deserialized {
+            value: group,
+            mut data,
+        } = <String>::mc_deserialize(data)?;
 
         let ingredients_count = width.0 as usize * height.0 as usize;
         let mut ingredients: Vec<RecipeIngredient> = Vec::with_capacity(ingredients_count);
         for _ in 0..ingredients_count {
-            let Deserialized { value: elem, data: rest } = RecipeIngredient::mc_deserialize(data)?;
+            let Deserialized {
+                value: elem,
+                data: rest,
+            } = RecipeIngredient::mc_deserialize(data)?;
             data = rest;
             ingredients.push(elem);
         }
 
-        let Deserialized { value: result, data } = Slot::mc_deserialize(data)?;
+        let Deserialized {
+            value: result,
+            data,
+        } = Slot::mc_deserialize(data)?;
 
         Deserialized::ok(
             Self {
@@ -3079,7 +3170,7 @@ proto_varint_enum!(RecipeUnlockAction,
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct EntityMetadata {
-    pub fields: Vec<EntityMetadataField>
+    pub fields: Vec<EntityMetadataField>,
 }
 
 impl Serialize for EntityMetadata {
@@ -3096,23 +3187,24 @@ impl Deserialize for EntityMetadata {
     fn mc_deserialize(mut data: &[u8]) -> DeserializeResult<'_, Self> {
         let mut fields = Vec::new();
         loop {
-            let Deserialized { value: index, data: rest } = u8::mc_deserialize(data)?;
+            let Deserialized {
+                value: index,
+                data: rest,
+            } = u8::mc_deserialize(data)?;
             data = rest;
             if index == 0xFF {
                 break;
             }
 
-            let Deserialized { value: field, data: rest } = EntityMetadataFieldData::mc_deserialize(data)?;
+            let Deserialized {
+                value: field,
+                data: rest,
+            } = EntityMetadataFieldData::mc_deserialize(data)?;
             data = rest;
-            fields.push(EntityMetadataField {
-                index,
-                data: field,
-            });
+            fields.push(EntityMetadataField { index, data: field });
         }
 
-        Deserialized::ok(Self {
-            fields,
-        }, data)
+        Deserialized::ok(Self { fields }, data)
     }
 }
 
@@ -3128,9 +3220,7 @@ impl TestRandom for EntityMetadata {
             });
         }
 
-        Self {
-            fields,
-        }
+        Self { fields }
     }
 }
 
@@ -3143,15 +3233,13 @@ impl EntityMetadata {
             }
         }
 
-        self.fields.push(EntityMetadataField {
-            index,
-            data,
-        })
+        self.fields.push(EntityMetadataField { index, data })
     }
 
     pub fn remove(&mut self, index: u8) -> bool {
         for i in 0..self.fields.len() {
-            let field = self.fields
+            let field = self
+                .fields
                 .get(i)
                 .expect("iterating through this vec, definitely have this index");
             if field.index == index {
@@ -3189,10 +3277,7 @@ impl<'a> core::iter::IntoIterator for &'a EntityMetadata {
     type IntoIter = FieldIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        FieldIter {
-            data: self,
-            at: 0,
-        }
+        FieldIter { data: self, at: 0 }
     }
 }
 
@@ -3205,7 +3290,10 @@ impl<'a> core::iter::Iterator for FieldIter<'a> {
     type Item = (u8, &'a EntityMetadataFieldData);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.data.fields.get(self.at).map(move |field| (field.index, &field.data))
+        self.data
+            .fields
+            .get(self.at)
+            .map(move |field| (field.index, &field.data))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -3376,464 +3464,1535 @@ pub mod tests {
     use super::*;
     use crate::packet_test_cases;
 
-    packet_test_cases!(RawPacket755, Packet755, Handshake, HandshakeSpec,
-        test_handshake, bench_write_handshake, bench_read_handshake);
-
-    packet_test_cases!(RawPacket755, Packet755, StatusRequest, StatusRequestSpec,
-        test_status_request, bench_write_status_request, bench_read_status_request);
-
-    packet_test_cases!(RawPacket755, Packet755, StatusPing, StatusPingSpec,
-        test_status_ping, bench_write_status_ping, bench_read_status_ping);
-
-    packet_test_cases!(RawPacket755, Packet755, StatusResponse, StatusResponseSpec,
-        test_status_response, bench_write_status_response, bench_read_status_response);
-
-    packet_test_cases!(RawPacket755, Packet755, StatusPong, StatusPongSpec,
-        test_status_pong, bench_write_status_pong, bench_read_status_pong);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginDisconnect, LoginDisconnectSpec,
-        test_login_disconnect, bench_write_login_disconnect, bench_read_login_disconnect);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginEncryptionRequest, LoginEncryptionRequestSpec,
-        test_login_encryption_request, bench_write_login_encryption_request, bench_read_login_encryption_request);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginSuccess, LoginSuccessSpec,
-        test_login_success, bench_write_login_success, bench_read_login_success);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginSetCompression, LoginSetCompressionSpec,
-        test_login_set_compression, bench_write_login_set_compression, bench_read_login_set_compression);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginPluginRequest, LoginPluginRequestSpec,
-        test_login_plugin_request, bench_write_login_plugin_request, bench_read_login_plugin_request);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginStart, LoginStartSpec,
-        test_login_start, bench_write_login_start, bench_read_login_start);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginEncryptionResponse, LoginEncryptionResponseSpec,
-        test_login_encryption_response, bench_write_login_encryption_response, bench_read_login_encryption_response);
-
-    packet_test_cases!(RawPacket755, Packet755, LoginPluginResponse, LoginPluginResponseSpec,
-        test_login_plugin_response, bench_write_login_plugin_response, bench_read_login_plugin_response);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySpawnEntity, PlaySpawnEntitySpec,
-        test_play_spawn_entity, bench_write_play_spawn_entity, bench_read_play_spawn_entity);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySpawnExperienceOrb, PlaySpawnExperienceOrbSpec,
-        test_play_spawn_experience_orb, bench_write_play_spawn_experience_orb, bench_read_play_spawn_experience_orb);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySpawnLivingEntity, PlaySpawnLivingEntitySpec,
-        test_play_spawn_living_entity, bench_write_play_spawn_living_entity, bench_read_play_spawn_living_entity);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySpawnPainting, PlaySpawnPaintingSpec,
-        test_play_spawn_painting, bench_write_play_spawn_painting, bench_read_play_spawn_painting);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySpawnPlayer, PlaySpawnPlayerSpec,
-        test_play_spawn_player, bench_write_play_spawn_player, bench_read_play_spawn_player);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityAnimation, PlayEntityAnimationSpec,
-        test_play_entity_animation, bench_write_play_entity_animation, bench_read_play_entity_animation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayStatistics, PlayStatisticsSpec,
-        test_play_statistics, bench_write_play_statistics, bench_read_play_statistics);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayAcknowledgePlayerDigging, PlayAcknowledgePlayerDiggingSpec,
-        test_play_acknowledge_player_digging, bench_write_play_acknowledge_player_digging, bench_read_play_acknowledge_player_digging);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayBlockBreakAnimation, PlayBlockBreakAnimationSpec,
-        test_play_block_break_animation, bench_write_play_block_break_animation, bench_read_play_block_break_animation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayBlockEntityData, PlayBlockEntityDataSpec,
-        test_play_block_entity_data, bench_write_play_block_entity_data, bench_read_play_block_entity_data);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayBlockAction, PlayBlockActionSpec,
-        test_play_block_action, bench_write_play_block_action, bench_read_play_block_action);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayBlockChange, PlayBlockChangeSpec,
-        test_play_block_change, bench_write_play_block_change, bench_read_play_block_change);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayBossBar, PlayBossBarSpec,
-        test_play_boss_bar, bench_write_play_boss_bar, bench_read_play_boss_bar);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerDifficulty, PlayServerDifficultySpec,
-        test_play_server_difficulty, bench_write_play_server_difficulty, bench_read_play_server_difficulty);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerChatMessage, PlayServerChatMessageSpec,
-        test_play_server_chat_message, bench_write_play_server_chat_message, bench_read_play_server_chat_message);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayTabComplete, PlayTabCompleteSpec,
-        test_play_tab_complete, bench_write_play_tab_complete, bench_read_play_tab_complete);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayDeclareCommands, PlayDeclareCommandsSpec,
-        test_play_declare_commands, bench_write_play_declare_commands, bench_read_play_declare_commands);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerWindowConfirmation, PlayServerWindowConfirmationSpec,
-        test_play_server_window_confirmation, bench_write_play_server_window_confirmation, bench_read_play_server_window_confirmation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerCloseWindow, PlayServerCloseWindowSpec,
-        test_play_server_close_window, bench_write_play_server_close_window, bench_read_play_server_close_window);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayWindowItems, PlayWindowItemsSpec,
-        test_play_window_items, bench_write_play_window_items, bench_read_play_window_items);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayWindowProperty, PlayWindowPropertySpec,
-        test_play_window_property, bench_write_play_window_property, bench_read_play_window_property);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetSlot, PlaySetSlotSpec,
-        test_play_set_slot, bench_write_play_set_slot, bench_read_play_set_slot);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetCooldown, PlaySetCooldownSpec,
-        test_play_set_cooldown, bench_write_play_set_cooldown, bench_read_play_set_cooldown);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerPluginMessage, PlayServerPluginMessageSpec,
-        test_play_server_plugin_message, bench_write_play_server_plugin_message, bench_read_play_server_plugin_message);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayNamedSoundEffect, PlayNamedSoundEffectSpec,
-        test_play_named_sound_effect, bench_write_play_named_sound_effect, bench_read_play_named_sound_effect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayDisconnect, PlayDisconnectSpec,
-        test_play_disconnect, bench_write_play_disconnect, bench_read_play_disconnect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityStatus, PlayEntityStatusSpec,
-        test_play_entity_status, bench_write_play_entity_status, bench_read_play_entity_status);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayExplosion, PlayExplosionSpec,
-        test_play_explosion, bench_write_play_explosion, bench_read_play_explosion);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUnloadChunk, PlayUnloadChunkSpec,
-        test_play_unload_chunk, bench_write_play_unload_chunk, bench_read_play_unload_chunk);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayChangeGameState, PlayChangeGameStateSpec,
-        test_play_change_game_state, bench_write_play_change_game_state, bench_read_play_change_game_state);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayOpenHorseWindow, PlayOpenHorseWindowSpec,
-        test_play_open_horse_window, bench_write_play_open_horse_window, bench_read_play_open_horse_window);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerKeepAlive, PlayServerKeepAliveSpec,
-        test_play_server_keep_alive, bench_write_play_server_keep_alive, bench_read_play_server_keep_alive);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayChunkData, PlayChunkDataWrapper,
-        test_play_chunk_data, bench_write_play_chunk_data, bench_read_play_chunk_data);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEffect, PlayEffectSpec,
-        test_play_effect, bench_write_play_effect, bench_read_play_effect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayParticle, PlayParticleSpec,
-        test_play_particle, bench_write_play_particle, bench_read_play_particle);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateLight, PlayUpdateLightSpec,
-        test_play_update_light, bench_write_play_update_light, bench_read_play_update_light);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayJoinGame, PlayJoinGameSpec,
-        test_play_join_game, bench_write_play_join_game, bench_read_play_join_game);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayMapData, PlayMapDataSpec,
-        test_play_map_data, bench_write_play_map_data, bench_read_play_map_data);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayTradeList, PlayTradeListSpec,
-        test_play_trade_list, bench_write_play_trade_list, bench_read_play_trade_list);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityPosition, PlayEntityPositionSpec,
-        test_play_entity_position, bench_write_play_entity_position, bench_read_play_entity_position);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityPositionAndRotation, PlayEntityPositionAndRotationSpec,
-        test_play_entity_position_and_rotation, bench_write_play_entity_position_and_rotation, bench_read_play_entity_position_and_rotation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityRotation, PlayEntityRotationSpec,
-        test_play_entity_rotation, bench_write_play_entity_rotation, bench_read_play_entity_rotation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityMovement, PlayEntityMovementSpec,
-        test_play_entity_movement, bench_write_play_entity_movement, bench_read_play_entity_movement);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerVehicleMove, PlayEntityVehicleMoveSpec,
-        test_play_server_vehicle_move, bench_write_play_server_vehicle_move, bench_read_play_server_vehicle_move);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayOpenBook, PlayOpenBookSpec,
-        test_play_open_book, bench_write_play_open_book, bench_read_play_open_book);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayOpenWindow, PlayOpenWindowSpec,
-        test_play_open_window, bench_write_play_open_window, bench_read_play_open_window);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayOpenSignEditor, PlayOpenSignEditorSpec,
-        test_play_open_sign_editor, bench_write_play_open_sign_editor, bench_read_play_open_sign_editor);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayCraftRecipeResponse, PlayCraftRecipeResponseSpec,
-        test_play_craft_recipe_response, bench_write_play_craft_recipe_response, bench_read_play_craft_recipe_response);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerPlayerAbilities, PlayServerPlayerAbilitiesSpec,
-        test_play_server_player_abilities, bench_write_play_server_player_abilities, bench_read_play_server_player_abilities);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayCombatEvent, PlayCombatEventSpec,
-        test_play_combat_event, bench_write_play_combat_event, bench_read_play_combat_event);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayPlayerInfo, PlayPlayerInfoSpec,
-        test_play_player_info, bench_write_play_player_info, bench_read_play_player_info);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayFacePlayer, PlayFacePlayerSpec,
-        test_play_face_player, bench_write_play_face_player, bench_read_play_face_player);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerPlayerPositionAndLook, PlayServerPlayerPositionAndLookSpec,
-        test_play_server_player_position_and_look, bench_write_play_server_player_position_and_look, bench_read_play_server_player_position_and_look);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUnlockRecipes, PlayUnlockRecipesSpec,
-        test_play_unlock_recipes, bench_write_play_unlock_recipes, bench_read_play_unlock_recipes);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayDestroyEntities, PlayDestroyEntitiesSpec,
-        test_play_destroy_entities, bench_write_play_destroy_entities, bench_read_play_destroy_entities);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayRemoveEntityEffect, PlayRemoveEntityEffectSpec,
-        test_play_remove_entity_effect, bench_write_play_remove_entity_effect, bench_read_play_remove_entity_effect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayResourcePackSend, PlayResourcePackSendSpec,
-        test_play_resource_pack_send, bench_write_play_resource_pack_send, bench_read_play_resource_pack_send);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayRespawn, PlayRespawnSpec,
-        test_play_respawn, bench_write_play_respawn, bench_read_play_respawn);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityHeadLook, PlayEntityHeadLookSpec,
-        test_play_entity_head_look, bench_write_play_entity_head_look, bench_read_play_entity_head_look);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayMultiBlockChange, PlayMultiBlockChangeSpec,
-        test_play_multi_block_change, bench_write_play_multi_block_change, bench_read_play_multi_block_change);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySelectAdvancementTab, PlaySelectAdvancementTabSpec,
-        test_play_select_advancement_tab, bench_write_play_select_advancement_tab, bench_read_play_select_advancement_tab);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayWorldBorder, PlayWorldBorderSpec,
-        test_play_world_border, bench_write_play_world_border, bench_read_play_world_border);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayCamera, PlayCameraSpec,
-        test_play_camera, bench_write_play_camera, bench_read_play_camera);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayServerHeldItemChange, PlayServerHeldItemChangeSpec,
-        test_play_server_held_item_change, bench_write_play_server_held_item_change, bench_read_play_server_held_item_change);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateViewPosition, PlayUpdateViewPositionSpec,
-        test_play_update_view_position, bench_write_play_update_view_position, bench_read_play_update_view_position);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateViewDistance, PlayUpdateViewDistanceSpec,
-        test_play_update_view_distance, bench_write_play_update_view_distance, bench_read_play_update_view_distance);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySpawnPosition, PlaySpawnPositionSpec,
-        test_play_spawn_position, bench_write_play_spawn_position, bench_read_play_spawn_position);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayDisplayScoreboard, PlayDisplayScoreboardSpec,
-        test_play_display_scoreboard, bench_write_play_display_scoreboard, bench_read_play_display_scoreboard);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityMetadata, PlayEntityMetadataSpec,
-        test_play_entity_metadata, bench_write_play_entity_metadata, bench_read_play_entity_metadata);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayAttachEntity, PlayAttachEntitySpec,
-        test_play_attach_entity, bench_write_play_attach_entity, bench_read_play_attach_entity);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityVelocity, PlayEntityVelocitySpec,
-        test_play_entity_velocity, bench_write_play_entity_velocity, bench_read_play_entity_velocity);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityEquipment, PlayEntityEquiptmentSpec,
-        test_play_entity_equipment, bench_write_play_entity_equipment, bench_read_play_entity_equipment);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetExperience, PlaySetExperienceSpec,
-        test_play_set_experience, bench_write_play_set_experience, bench_read_play_set_experience);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdatehealth, PlayUpdateHealthSpec,
-        test_play_updatehealth, bench_write_play_updatehealth, bench_read_play_updatehealth);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayScoreboardObjective, PlayScoreboardObjectiveSpec,
-        test_play_scoreboard_objective, bench_write_play_scoreboard_objective, bench_read_play_scoreboard_objective);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetPassengers, PlaySetPassengersSpec,
-        test_play_set_passengers, bench_write_play_set_passengers, bench_read_play_set_passengers);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayTeams, PlayTeamsSpec,
-        test_play_teams, bench_write_play_teams, bench_read_play_teams);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateScore, PlayUpdateScoreSpec,
-        test_play_update_score, bench_write_play_update_score, bench_read_play_update_score);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayTimeUpdate, PlayTimeUpdateSpec,
-        test_play_time_update, bench_write_play_time_update, bench_read_play_time_update);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayTitle, PlayTitleSpec,
-        test_play_title, bench_write_play_title, bench_read_play_title);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntitySoundEffect, PlayEntitySoundEffectSpec,
-        test_play_entity_sound_effect, bench_write_play_entity_sound_effect, bench_read_play_entity_sound_effect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySoundEffect, PlaySoundEffectSpec,
-        test_play_sound_effect, bench_write_play_sound_effect, bench_read_play_sound_effect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayStopSound, PlayStopSoundSpec,
-        test_play_stop_sound, bench_write_play_stop_sound, bench_read_play_stop_sound);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayerPlayerListHeaderAndFooter, PlayPlayerListHeaderAndFooterSpec,
-        test_player_player_list_header_and_footer, bench_write_player_player_list_header_and_footer, bench_read_player_player_list_header_and_footer);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayNbtQueryResponse, PlayNbtQueryResponseSpec,
-        test_play_nbt_query_response, bench_write_play_nbt_query_response, bench_read_play_nbt_query_response);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayCollectItem, PlayCollectItemSpec,
-        test_play_collect_item, bench_write_play_collect_item, bench_read_play_collect_item);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityTeleport, PlayEntityTeleportSpec,
-        test_play_entity_teleport, bench_write_play_entity_teleport, bench_read_play_entity_teleport);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayAdvancements, PlayAdvancementsSpec,
-        test_play_advancements, bench_write_play_advancements, bench_read_play_advancements);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityProperties, PlayEntityPropertiesSpec,
-        test_play_entity_properties, bench_write_play_entity_properties, bench_read_play_entity_properties);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityEffect, PlayEntityEffectSpec,
-        test_play_entity_effect, bench_write_play_entity_effect, bench_read_play_entity_effect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayDeclareRecipes, PlayDeclareRecipesSpec,
-        test_play_declare_recipes, bench_write_play_declare_recipes, bench_read_play_declare_recipes);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayTags, PlayTagsSpec,
-        test_play_tags, bench_write_play_tags, bench_read_play_tags);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayTeleportConfirm, PlayTeleportConfirmSpec,
-        test_play_teleport_confirm, bench_write_play_teleport_confirm, bench_read_play_teleport_confirm);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayQueryBlockNbt, PlayQueryBlockNbtSpec,
-        test_play_query_block_nbt, bench_write_play_query_block_nbt, bench_read_play_query_block_nbt);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayQueryEntityNbt, PlayQueryEntityNbtSpec,
-        test_play_query_entity_nbt, bench_write_play_query_entity_nbt, bench_read_play_query_entity_nbt);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetDifficulty, PlaySetDifficultySpec,
-        test_play_set_difficulty, bench_write_play_set_difficulty, bench_read_play_set_difficulty);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientChatMessage, PlayClientChatMessageSpec,
-        test_play_client_chat_message, bench_write_play_client_chat_message, bench_read_play_client_chat_message);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientStatus, PlayClientStatusSpec,
-        test_play_client_status, bench_write_play_client_status, bench_read_play_client_status);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientSettings, PlayClientSettingsSpec,
-        test_play_client_settings, bench_write_play_client_settings, bench_read_play_client_settings);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientTabComplete, PlayClientTabCompleteSpec,
-        test_play_client_tab_complete, bench_write_play_client_tab_complete, bench_read_play_client_tab_complete);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientWindowConfirmation, PlayClientWindowConfirmationSpec,
-        test_play_client_window_confirmation, bench_write_play_client_window_confirmation, bench_read_play_client_window_confirmation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClickWindowButton, PlayClickWindowButtonSpec,
-        test_play_click_window_button, bench_write_play_click_window_button, bench_read_play_click_window_button);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClickWindow, PlayClickWindowSpec,
-        test_play_click_window, bench_write_play_click_window, bench_read_play_click_window);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientCloseWindow, PlayClientCloseWindowSpec,
-        test_play_client_close_window, bench_write_play_client_close_window, bench_read_play_client_close_window);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientPluginMessage, PlayClientPluginMessageSpec,
-        test_play_client_plugin_message, bench_write_play_client_plugin_message, bench_read_play_client_plugin_message);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEditBook, PlayEditBookSpec,
-        test_play_edit_book, bench_write_play_edit_book, bench_read_play_edit_book);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayInteractEntity, PlayInteractEntitySpec,
-        test_play_interact_entity, bench_write_play_interact_entity, bench_read_play_interact_entity);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayGenerateStructure, PlayGenerateStructureSpec,
-        test_play_generate_structure, bench_write_play_generate_structure, bench_read_play_generate_structure);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientKeepAlive, PlayClientKeepAliveSpec,
-        test_play_client_keep_alive, bench_write_play_client_keep_alive, bench_read_play_client_keep_alive);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayLockDifficulty, PlayLockDifficultySpec,
-        test_play_lock_difficulty, bench_write_play_lock_difficulty, bench_read_play_lock_difficulty);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayPlayerPosition, PlayPlayerPositionSpec,
-        test_play_player_position, bench_write_play_player_position, bench_read_play_player_position);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientPlayerPositionAndRotation, PlayClientPlayerPositionAndRotationSpec,
-        test_play_client_player_position_and_rotation, bench_write_play_client_player_position_and_rotation, bench_read_play_client_player_position_and_rotation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayPlayerRotation, PlayPlayerRotationSpec,
-        test_play_player_rotation, bench_write_play_player_rotation, bench_read_play_player_rotation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayPlayerMovement, PlayPlayerMovementSpec,
-        test_play_player_movement, bench_write_play_player_movement, bench_read_play_player_movement);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientVehicleMove, PlayClientVehicleMoveSpec,
-        test_play_client_vehicle_move, bench_write_play_client_vehicle_move, bench_read_play_client_vehicle_move);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySteerBoat, PlaySteerBoatSpec,
-        test_play_steer_boat, bench_write_play_steer_boat, bench_read_play_steer_boat);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayPickItem, PlayPickItemSpec,
-        test_play_pick_item, bench_write_play_pick_item, bench_read_play_pick_item);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayCraftRecipeRequest, PlayCraftRecipeRequestSpec,
-        test_play_craft_recipe_request, bench_write_play_craft_recipe_request, bench_read_play_craft_recipe_request);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientPlayerAbilities, PlayClientPlayerAbilitiesSpec,
-        test_play_client_player_abilities, bench_write_play_client_player_abilities, bench_read_play_client_player_abilities);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayPlayerDigging, PlayPlayerDiggingSpec,
-        test_play_player_digging, bench_write_play_player_digging, bench_read_play_player_digging);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayEntityAction, PlayEntityActionSpec,
-        test_play_entity_action, bench_write_play_entity_action, bench_read_play_entity_action);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySteerVehicle, PlaySteerVehicleSpec,
-        test_play_steer_vehicle, bench_write_play_steer_vehicle, bench_read_play_steer_vehicle);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetDisplayedRecipe, PlaySetDisplayedRecipeSpec,
-        test_play_set_displayed_recipe, bench_write_play_set_displayed_recipe, bench_read_play_set_displayed_recipe);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetRecipeBookState, PlaySetRecipeBookStateSpec,
-        test_play_set_recipe_book_state, bench_write_play_set_recipe_book_state, bench_read_play_set_recipe_book_state);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayNameItem, PlayNameItemSpec,
-        test_play_name_item, bench_write_play_name_item, bench_read_play_name_item);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayResourcePackStatus, PlayResourcePackStatusSpec,
-        test_play_resource_pack_status, bench_write_play_resource_pack_status, bench_read_play_resource_pack_status);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayAdvancementTab, PlayAdvancementTabSpec,
-        test_play_advancement_tab, bench_write_play_advancement_tab, bench_read_play_advancement_tab);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySelectTrade, PlaySelectTradeSpec,
-        test_play_select_trade, bench_write_play_select_trade, bench_read_play_select_trade);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySetBeaconEffect, PlaySetBeaconEffectSpec,
-        test_play_set_beacon_effect, bench_write_play_set_beacon_effect, bench_read_play_set_beacon_effect);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientHeldItemChange, PlayClientHeldItemChangeSpec,
-        test_play_client_held_item_change, bench_write_play_client_held_item_change, bench_read_play_client_held_item_change);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateCommandBlock, PlayUpdateCommandBlockSpec,
-        test_play_update_command_block, bench_write_play_update_command_block, bench_read_play_update_command_block);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateCommandBlockMinecart, PlayUpdateCommandBlockMinecartSpec,
-        test_play_update_command_block_minecart, bench_write_play_update_command_block_minecart, bench_read_play_update_command_block_minecart);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateJigsawBlock, PlayUpdateJigsawBlockSpec,
-        test_play_update_jigsaw_block, bench_write_play_update_jigsaw_block, bench_read_play_update_jigsaw_block);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayCreativeInventoryAction, PlayCreativeInventoryActionSpec,
-        test_play_creative_inventory_action, bench_write_play_creative_inventory_action, bench_read_play_creative_inventory_action);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateStructureBlock, PlayUpdateStructureBlockSpec,
-        test_play_update_structure_block, bench_write_play_update_structure_block, bench_read_play_update_structure_block);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUpdateSign, PlayUpdateSignSpec,
-        test_play_update_sign, bench_write_play_update_sign, bench_read_play_update_sign);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayClientAnimation, PlayClientAnimationSpec,
-        test_play_client_animation, bench_write_play_client_animation, bench_read_play_client_animation);
-
-    packet_test_cases!(RawPacket755, Packet755, PlaySpectate, PlaySpectateSpec,
-        test_play_spectate, bench_write_play_spectate, bench_read_play_spectate);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayBlockPlacement, PlayBlockPlacementSpec,
-        test_play_block_placement, bench_write_play_block_placement, bench_read_play_block_placement);
-
-    packet_test_cases!(RawPacket755, Packet755, PlayUseItem, PlayUseItemSpec,
-        test_play_use_item, bench_write_play_use_item, bench_read_play_use_item);
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        Handshake,
+        HandshakeSpec,
+        test_handshake,
+        bench_write_handshake,
+        bench_read_handshake
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        StatusRequest,
+        StatusRequestSpec,
+        test_status_request,
+        bench_write_status_request,
+        bench_read_status_request
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        StatusPing,
+        StatusPingSpec,
+        test_status_ping,
+        bench_write_status_ping,
+        bench_read_status_ping
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        StatusResponse,
+        StatusResponseSpec,
+        test_status_response,
+        bench_write_status_response,
+        bench_read_status_response
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        StatusPong,
+        StatusPongSpec,
+        test_status_pong,
+        bench_write_status_pong,
+        bench_read_status_pong
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginDisconnect,
+        LoginDisconnectSpec,
+        test_login_disconnect,
+        bench_write_login_disconnect,
+        bench_read_login_disconnect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginEncryptionRequest,
+        LoginEncryptionRequestSpec,
+        test_login_encryption_request,
+        bench_write_login_encryption_request,
+        bench_read_login_encryption_request
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginSuccess,
+        LoginSuccessSpec,
+        test_login_success,
+        bench_write_login_success,
+        bench_read_login_success
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginSetCompression,
+        LoginSetCompressionSpec,
+        test_login_set_compression,
+        bench_write_login_set_compression,
+        bench_read_login_set_compression
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginPluginRequest,
+        LoginPluginRequestSpec,
+        test_login_plugin_request,
+        bench_write_login_plugin_request,
+        bench_read_login_plugin_request
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginStart,
+        LoginStartSpec,
+        test_login_start,
+        bench_write_login_start,
+        bench_read_login_start
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginEncryptionResponse,
+        LoginEncryptionResponseSpec,
+        test_login_encryption_response,
+        bench_write_login_encryption_response,
+        bench_read_login_encryption_response
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        LoginPluginResponse,
+        LoginPluginResponseSpec,
+        test_login_plugin_response,
+        bench_write_login_plugin_response,
+        bench_read_login_plugin_response
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySpawnEntity,
+        PlaySpawnEntitySpec,
+        test_play_spawn_entity,
+        bench_write_play_spawn_entity,
+        bench_read_play_spawn_entity
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySpawnExperienceOrb,
+        PlaySpawnExperienceOrbSpec,
+        test_play_spawn_experience_orb,
+        bench_write_play_spawn_experience_orb,
+        bench_read_play_spawn_experience_orb
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySpawnLivingEntity,
+        PlaySpawnLivingEntitySpec,
+        test_play_spawn_living_entity,
+        bench_write_play_spawn_living_entity,
+        bench_read_play_spawn_living_entity
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySpawnPainting,
+        PlaySpawnPaintingSpec,
+        test_play_spawn_painting,
+        bench_write_play_spawn_painting,
+        bench_read_play_spawn_painting
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySpawnPlayer,
+        PlaySpawnPlayerSpec,
+        test_play_spawn_player,
+        bench_write_play_spawn_player,
+        bench_read_play_spawn_player
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityAnimation,
+        PlayEntityAnimationSpec,
+        test_play_entity_animation,
+        bench_write_play_entity_animation,
+        bench_read_play_entity_animation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayStatistics,
+        PlayStatisticsSpec,
+        test_play_statistics,
+        bench_write_play_statistics,
+        bench_read_play_statistics
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayAcknowledgePlayerDigging,
+        PlayAcknowledgePlayerDiggingSpec,
+        test_play_acknowledge_player_digging,
+        bench_write_play_acknowledge_player_digging,
+        bench_read_play_acknowledge_player_digging
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayBlockBreakAnimation,
+        PlayBlockBreakAnimationSpec,
+        test_play_block_break_animation,
+        bench_write_play_block_break_animation,
+        bench_read_play_block_break_animation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayBlockEntityData,
+        PlayBlockEntityDataSpec,
+        test_play_block_entity_data,
+        bench_write_play_block_entity_data,
+        bench_read_play_block_entity_data
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayBlockAction,
+        PlayBlockActionSpec,
+        test_play_block_action,
+        bench_write_play_block_action,
+        bench_read_play_block_action
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayBlockChange,
+        PlayBlockChangeSpec,
+        test_play_block_change,
+        bench_write_play_block_change,
+        bench_read_play_block_change
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayBossBar,
+        PlayBossBarSpec,
+        test_play_boss_bar,
+        bench_write_play_boss_bar,
+        bench_read_play_boss_bar
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerDifficulty,
+        PlayServerDifficultySpec,
+        test_play_server_difficulty,
+        bench_write_play_server_difficulty,
+        bench_read_play_server_difficulty
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerChatMessage,
+        PlayServerChatMessageSpec,
+        test_play_server_chat_message,
+        bench_write_play_server_chat_message,
+        bench_read_play_server_chat_message
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayTabComplete,
+        PlayTabCompleteSpec,
+        test_play_tab_complete,
+        bench_write_play_tab_complete,
+        bench_read_play_tab_complete
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayDeclareCommands,
+        PlayDeclareCommandsSpec,
+        test_play_declare_commands,
+        bench_write_play_declare_commands,
+        bench_read_play_declare_commands
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerWindowConfirmation,
+        PlayServerWindowConfirmationSpec,
+        test_play_server_window_confirmation,
+        bench_write_play_server_window_confirmation,
+        bench_read_play_server_window_confirmation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerCloseWindow,
+        PlayServerCloseWindowSpec,
+        test_play_server_close_window,
+        bench_write_play_server_close_window,
+        bench_read_play_server_close_window
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayWindowItems,
+        PlayWindowItemsSpec,
+        test_play_window_items,
+        bench_write_play_window_items,
+        bench_read_play_window_items
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayWindowProperty,
+        PlayWindowPropertySpec,
+        test_play_window_property,
+        bench_write_play_window_property,
+        bench_read_play_window_property
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetSlot,
+        PlaySetSlotSpec,
+        test_play_set_slot,
+        bench_write_play_set_slot,
+        bench_read_play_set_slot
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetCooldown,
+        PlaySetCooldownSpec,
+        test_play_set_cooldown,
+        bench_write_play_set_cooldown,
+        bench_read_play_set_cooldown
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerPluginMessage,
+        PlayServerPluginMessageSpec,
+        test_play_server_plugin_message,
+        bench_write_play_server_plugin_message,
+        bench_read_play_server_plugin_message
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayNamedSoundEffect,
+        PlayNamedSoundEffectSpec,
+        test_play_named_sound_effect,
+        bench_write_play_named_sound_effect,
+        bench_read_play_named_sound_effect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayDisconnect,
+        PlayDisconnectSpec,
+        test_play_disconnect,
+        bench_write_play_disconnect,
+        bench_read_play_disconnect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityStatus,
+        PlayEntityStatusSpec,
+        test_play_entity_status,
+        bench_write_play_entity_status,
+        bench_read_play_entity_status
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayExplosion,
+        PlayExplosionSpec,
+        test_play_explosion,
+        bench_write_play_explosion,
+        bench_read_play_explosion
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUnloadChunk,
+        PlayUnloadChunkSpec,
+        test_play_unload_chunk,
+        bench_write_play_unload_chunk,
+        bench_read_play_unload_chunk
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayChangeGameState,
+        PlayChangeGameStateSpec,
+        test_play_change_game_state,
+        bench_write_play_change_game_state,
+        bench_read_play_change_game_state
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayOpenHorseWindow,
+        PlayOpenHorseWindowSpec,
+        test_play_open_horse_window,
+        bench_write_play_open_horse_window,
+        bench_read_play_open_horse_window
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerKeepAlive,
+        PlayServerKeepAliveSpec,
+        test_play_server_keep_alive,
+        bench_write_play_server_keep_alive,
+        bench_read_play_server_keep_alive
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayChunkData,
+        PlayChunkDataWrapper,
+        test_play_chunk_data,
+        bench_write_play_chunk_data,
+        bench_read_play_chunk_data
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEffect,
+        PlayEffectSpec,
+        test_play_effect,
+        bench_write_play_effect,
+        bench_read_play_effect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayParticle,
+        PlayParticleSpec,
+        test_play_particle,
+        bench_write_play_particle,
+        bench_read_play_particle
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateLight,
+        PlayUpdateLightSpec,
+        test_play_update_light,
+        bench_write_play_update_light,
+        bench_read_play_update_light
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayJoinGame,
+        PlayJoinGameSpec,
+        test_play_join_game,
+        bench_write_play_join_game,
+        bench_read_play_join_game
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayMapData,
+        PlayMapDataSpec,
+        test_play_map_data,
+        bench_write_play_map_data,
+        bench_read_play_map_data
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayTradeList,
+        PlayTradeListSpec,
+        test_play_trade_list,
+        bench_write_play_trade_list,
+        bench_read_play_trade_list
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityPosition,
+        PlayEntityPositionSpec,
+        test_play_entity_position,
+        bench_write_play_entity_position,
+        bench_read_play_entity_position
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityPositionAndRotation,
+        PlayEntityPositionAndRotationSpec,
+        test_play_entity_position_and_rotation,
+        bench_write_play_entity_position_and_rotation,
+        bench_read_play_entity_position_and_rotation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityRotation,
+        PlayEntityRotationSpec,
+        test_play_entity_rotation,
+        bench_write_play_entity_rotation,
+        bench_read_play_entity_rotation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityMovement,
+        PlayEntityMovementSpec,
+        test_play_entity_movement,
+        bench_write_play_entity_movement,
+        bench_read_play_entity_movement
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerVehicleMove,
+        PlayEntityVehicleMoveSpec,
+        test_play_server_vehicle_move,
+        bench_write_play_server_vehicle_move,
+        bench_read_play_server_vehicle_move
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayOpenBook,
+        PlayOpenBookSpec,
+        test_play_open_book,
+        bench_write_play_open_book,
+        bench_read_play_open_book
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayOpenWindow,
+        PlayOpenWindowSpec,
+        test_play_open_window,
+        bench_write_play_open_window,
+        bench_read_play_open_window
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayOpenSignEditor,
+        PlayOpenSignEditorSpec,
+        test_play_open_sign_editor,
+        bench_write_play_open_sign_editor,
+        bench_read_play_open_sign_editor
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayCraftRecipeResponse,
+        PlayCraftRecipeResponseSpec,
+        test_play_craft_recipe_response,
+        bench_write_play_craft_recipe_response,
+        bench_read_play_craft_recipe_response
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerPlayerAbilities,
+        PlayServerPlayerAbilitiesSpec,
+        test_play_server_player_abilities,
+        bench_write_play_server_player_abilities,
+        bench_read_play_server_player_abilities
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayCombatEvent,
+        PlayCombatEventSpec,
+        test_play_combat_event,
+        bench_write_play_combat_event,
+        bench_read_play_combat_event
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayPlayerInfo,
+        PlayPlayerInfoSpec,
+        test_play_player_info,
+        bench_write_play_player_info,
+        bench_read_play_player_info
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayFacePlayer,
+        PlayFacePlayerSpec,
+        test_play_face_player,
+        bench_write_play_face_player,
+        bench_read_play_face_player
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerPlayerPositionAndLook,
+        PlayServerPlayerPositionAndLookSpec,
+        test_play_server_player_position_and_look,
+        bench_write_play_server_player_position_and_look,
+        bench_read_play_server_player_position_and_look
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUnlockRecipes,
+        PlayUnlockRecipesSpec,
+        test_play_unlock_recipes,
+        bench_write_play_unlock_recipes,
+        bench_read_play_unlock_recipes
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayDestroyEntities,
+        PlayDestroyEntitiesSpec,
+        test_play_destroy_entities,
+        bench_write_play_destroy_entities,
+        bench_read_play_destroy_entities
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayRemoveEntityEffect,
+        PlayRemoveEntityEffectSpec,
+        test_play_remove_entity_effect,
+        bench_write_play_remove_entity_effect,
+        bench_read_play_remove_entity_effect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayResourcePackSend,
+        PlayResourcePackSendSpec,
+        test_play_resource_pack_send,
+        bench_write_play_resource_pack_send,
+        bench_read_play_resource_pack_send
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayRespawn,
+        PlayRespawnSpec,
+        test_play_respawn,
+        bench_write_play_respawn,
+        bench_read_play_respawn
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityHeadLook,
+        PlayEntityHeadLookSpec,
+        test_play_entity_head_look,
+        bench_write_play_entity_head_look,
+        bench_read_play_entity_head_look
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayMultiBlockChange,
+        PlayMultiBlockChangeSpec,
+        test_play_multi_block_change,
+        bench_write_play_multi_block_change,
+        bench_read_play_multi_block_change
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySelectAdvancementTab,
+        PlaySelectAdvancementTabSpec,
+        test_play_select_advancement_tab,
+        bench_write_play_select_advancement_tab,
+        bench_read_play_select_advancement_tab
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayWorldBorder,
+        PlayWorldBorderSpec,
+        test_play_world_border,
+        bench_write_play_world_border,
+        bench_read_play_world_border
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayCamera,
+        PlayCameraSpec,
+        test_play_camera,
+        bench_write_play_camera,
+        bench_read_play_camera
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayServerHeldItemChange,
+        PlayServerHeldItemChangeSpec,
+        test_play_server_held_item_change,
+        bench_write_play_server_held_item_change,
+        bench_read_play_server_held_item_change
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateViewPosition,
+        PlayUpdateViewPositionSpec,
+        test_play_update_view_position,
+        bench_write_play_update_view_position,
+        bench_read_play_update_view_position
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateViewDistance,
+        PlayUpdateViewDistanceSpec,
+        test_play_update_view_distance,
+        bench_write_play_update_view_distance,
+        bench_read_play_update_view_distance
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySpawnPosition,
+        PlaySpawnPositionSpec,
+        test_play_spawn_position,
+        bench_write_play_spawn_position,
+        bench_read_play_spawn_position
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayDisplayScoreboard,
+        PlayDisplayScoreboardSpec,
+        test_play_display_scoreboard,
+        bench_write_play_display_scoreboard,
+        bench_read_play_display_scoreboard
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityMetadata,
+        PlayEntityMetadataSpec,
+        test_play_entity_metadata,
+        bench_write_play_entity_metadata,
+        bench_read_play_entity_metadata
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayAttachEntity,
+        PlayAttachEntitySpec,
+        test_play_attach_entity,
+        bench_write_play_attach_entity,
+        bench_read_play_attach_entity
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityVelocity,
+        PlayEntityVelocitySpec,
+        test_play_entity_velocity,
+        bench_write_play_entity_velocity,
+        bench_read_play_entity_velocity
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityEquipment,
+        PlayEntityEquiptmentSpec,
+        test_play_entity_equipment,
+        bench_write_play_entity_equipment,
+        bench_read_play_entity_equipment
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetExperience,
+        PlaySetExperienceSpec,
+        test_play_set_experience,
+        bench_write_play_set_experience,
+        bench_read_play_set_experience
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdatehealth,
+        PlayUpdateHealthSpec,
+        test_play_updatehealth,
+        bench_write_play_updatehealth,
+        bench_read_play_updatehealth
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayScoreboardObjective,
+        PlayScoreboardObjectiveSpec,
+        test_play_scoreboard_objective,
+        bench_write_play_scoreboard_objective,
+        bench_read_play_scoreboard_objective
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetPassengers,
+        PlaySetPassengersSpec,
+        test_play_set_passengers,
+        bench_write_play_set_passengers,
+        bench_read_play_set_passengers
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayTeams,
+        PlayTeamsSpec,
+        test_play_teams,
+        bench_write_play_teams,
+        bench_read_play_teams
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateScore,
+        PlayUpdateScoreSpec,
+        test_play_update_score,
+        bench_write_play_update_score,
+        bench_read_play_update_score
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayTimeUpdate,
+        PlayTimeUpdateSpec,
+        test_play_time_update,
+        bench_write_play_time_update,
+        bench_read_play_time_update
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayTitle,
+        PlayTitleSpec,
+        test_play_title,
+        bench_write_play_title,
+        bench_read_play_title
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntitySoundEffect,
+        PlayEntitySoundEffectSpec,
+        test_play_entity_sound_effect,
+        bench_write_play_entity_sound_effect,
+        bench_read_play_entity_sound_effect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySoundEffect,
+        PlaySoundEffectSpec,
+        test_play_sound_effect,
+        bench_write_play_sound_effect,
+        bench_read_play_sound_effect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayStopSound,
+        PlayStopSoundSpec,
+        test_play_stop_sound,
+        bench_write_play_stop_sound,
+        bench_read_play_stop_sound
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayerPlayerListHeaderAndFooter,
+        PlayPlayerListHeaderAndFooterSpec,
+        test_player_player_list_header_and_footer,
+        bench_write_player_player_list_header_and_footer,
+        bench_read_player_player_list_header_and_footer
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayNbtQueryResponse,
+        PlayNbtQueryResponseSpec,
+        test_play_nbt_query_response,
+        bench_write_play_nbt_query_response,
+        bench_read_play_nbt_query_response
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayCollectItem,
+        PlayCollectItemSpec,
+        test_play_collect_item,
+        bench_write_play_collect_item,
+        bench_read_play_collect_item
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityTeleport,
+        PlayEntityTeleportSpec,
+        test_play_entity_teleport,
+        bench_write_play_entity_teleport,
+        bench_read_play_entity_teleport
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayAdvancements,
+        PlayAdvancementsSpec,
+        test_play_advancements,
+        bench_write_play_advancements,
+        bench_read_play_advancements
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityProperties,
+        PlayEntityPropertiesSpec,
+        test_play_entity_properties,
+        bench_write_play_entity_properties,
+        bench_read_play_entity_properties
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityEffect,
+        PlayEntityEffectSpec,
+        test_play_entity_effect,
+        bench_write_play_entity_effect,
+        bench_read_play_entity_effect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayDeclareRecipes,
+        PlayDeclareRecipesSpec,
+        test_play_declare_recipes,
+        bench_write_play_declare_recipes,
+        bench_read_play_declare_recipes
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayTags,
+        PlayTagsSpec,
+        test_play_tags,
+        bench_write_play_tags,
+        bench_read_play_tags
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayTeleportConfirm,
+        PlayTeleportConfirmSpec,
+        test_play_teleport_confirm,
+        bench_write_play_teleport_confirm,
+        bench_read_play_teleport_confirm
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayQueryBlockNbt,
+        PlayQueryBlockNbtSpec,
+        test_play_query_block_nbt,
+        bench_write_play_query_block_nbt,
+        bench_read_play_query_block_nbt
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayQueryEntityNbt,
+        PlayQueryEntityNbtSpec,
+        test_play_query_entity_nbt,
+        bench_write_play_query_entity_nbt,
+        bench_read_play_query_entity_nbt
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetDifficulty,
+        PlaySetDifficultySpec,
+        test_play_set_difficulty,
+        bench_write_play_set_difficulty,
+        bench_read_play_set_difficulty
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientChatMessage,
+        PlayClientChatMessageSpec,
+        test_play_client_chat_message,
+        bench_write_play_client_chat_message,
+        bench_read_play_client_chat_message
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientStatus,
+        PlayClientStatusSpec,
+        test_play_client_status,
+        bench_write_play_client_status,
+        bench_read_play_client_status
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientSettings,
+        PlayClientSettingsSpec,
+        test_play_client_settings,
+        bench_write_play_client_settings,
+        bench_read_play_client_settings
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientTabComplete,
+        PlayClientTabCompleteSpec,
+        test_play_client_tab_complete,
+        bench_write_play_client_tab_complete,
+        bench_read_play_client_tab_complete
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientWindowConfirmation,
+        PlayClientWindowConfirmationSpec,
+        test_play_client_window_confirmation,
+        bench_write_play_client_window_confirmation,
+        bench_read_play_client_window_confirmation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClickWindowButton,
+        PlayClickWindowButtonSpec,
+        test_play_click_window_button,
+        bench_write_play_click_window_button,
+        bench_read_play_click_window_button
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClickWindow,
+        PlayClickWindowSpec,
+        test_play_click_window,
+        bench_write_play_click_window,
+        bench_read_play_click_window
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientCloseWindow,
+        PlayClientCloseWindowSpec,
+        test_play_client_close_window,
+        bench_write_play_client_close_window,
+        bench_read_play_client_close_window
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientPluginMessage,
+        PlayClientPluginMessageSpec,
+        test_play_client_plugin_message,
+        bench_write_play_client_plugin_message,
+        bench_read_play_client_plugin_message
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEditBook,
+        PlayEditBookSpec,
+        test_play_edit_book,
+        bench_write_play_edit_book,
+        bench_read_play_edit_book
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayInteractEntity,
+        PlayInteractEntitySpec,
+        test_play_interact_entity,
+        bench_write_play_interact_entity,
+        bench_read_play_interact_entity
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayGenerateStructure,
+        PlayGenerateStructureSpec,
+        test_play_generate_structure,
+        bench_write_play_generate_structure,
+        bench_read_play_generate_structure
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientKeepAlive,
+        PlayClientKeepAliveSpec,
+        test_play_client_keep_alive,
+        bench_write_play_client_keep_alive,
+        bench_read_play_client_keep_alive
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayLockDifficulty,
+        PlayLockDifficultySpec,
+        test_play_lock_difficulty,
+        bench_write_play_lock_difficulty,
+        bench_read_play_lock_difficulty
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayPlayerPosition,
+        PlayPlayerPositionSpec,
+        test_play_player_position,
+        bench_write_play_player_position,
+        bench_read_play_player_position
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientPlayerPositionAndRotation,
+        PlayClientPlayerPositionAndRotationSpec,
+        test_play_client_player_position_and_rotation,
+        bench_write_play_client_player_position_and_rotation,
+        bench_read_play_client_player_position_and_rotation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayPlayerRotation,
+        PlayPlayerRotationSpec,
+        test_play_player_rotation,
+        bench_write_play_player_rotation,
+        bench_read_play_player_rotation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayPlayerMovement,
+        PlayPlayerMovementSpec,
+        test_play_player_movement,
+        bench_write_play_player_movement,
+        bench_read_play_player_movement
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientVehicleMove,
+        PlayClientVehicleMoveSpec,
+        test_play_client_vehicle_move,
+        bench_write_play_client_vehicle_move,
+        bench_read_play_client_vehicle_move
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySteerBoat,
+        PlaySteerBoatSpec,
+        test_play_steer_boat,
+        bench_write_play_steer_boat,
+        bench_read_play_steer_boat
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayPickItem,
+        PlayPickItemSpec,
+        test_play_pick_item,
+        bench_write_play_pick_item,
+        bench_read_play_pick_item
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayCraftRecipeRequest,
+        PlayCraftRecipeRequestSpec,
+        test_play_craft_recipe_request,
+        bench_write_play_craft_recipe_request,
+        bench_read_play_craft_recipe_request
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientPlayerAbilities,
+        PlayClientPlayerAbilitiesSpec,
+        test_play_client_player_abilities,
+        bench_write_play_client_player_abilities,
+        bench_read_play_client_player_abilities
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayPlayerDigging,
+        PlayPlayerDiggingSpec,
+        test_play_player_digging,
+        bench_write_play_player_digging,
+        bench_read_play_player_digging
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayEntityAction,
+        PlayEntityActionSpec,
+        test_play_entity_action,
+        bench_write_play_entity_action,
+        bench_read_play_entity_action
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySteerVehicle,
+        PlaySteerVehicleSpec,
+        test_play_steer_vehicle,
+        bench_write_play_steer_vehicle,
+        bench_read_play_steer_vehicle
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetDisplayedRecipe,
+        PlaySetDisplayedRecipeSpec,
+        test_play_set_displayed_recipe,
+        bench_write_play_set_displayed_recipe,
+        bench_read_play_set_displayed_recipe
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetRecipeBookState,
+        PlaySetRecipeBookStateSpec,
+        test_play_set_recipe_book_state,
+        bench_write_play_set_recipe_book_state,
+        bench_read_play_set_recipe_book_state
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayNameItem,
+        PlayNameItemSpec,
+        test_play_name_item,
+        bench_write_play_name_item,
+        bench_read_play_name_item
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayResourcePackStatus,
+        PlayResourcePackStatusSpec,
+        test_play_resource_pack_status,
+        bench_write_play_resource_pack_status,
+        bench_read_play_resource_pack_status
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayAdvancementTab,
+        PlayAdvancementTabSpec,
+        test_play_advancement_tab,
+        bench_write_play_advancement_tab,
+        bench_read_play_advancement_tab
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySelectTrade,
+        PlaySelectTradeSpec,
+        test_play_select_trade,
+        bench_write_play_select_trade,
+        bench_read_play_select_trade
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySetBeaconEffect,
+        PlaySetBeaconEffectSpec,
+        test_play_set_beacon_effect,
+        bench_write_play_set_beacon_effect,
+        bench_read_play_set_beacon_effect
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientHeldItemChange,
+        PlayClientHeldItemChangeSpec,
+        test_play_client_held_item_change,
+        bench_write_play_client_held_item_change,
+        bench_read_play_client_held_item_change
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateCommandBlock,
+        PlayUpdateCommandBlockSpec,
+        test_play_update_command_block,
+        bench_write_play_update_command_block,
+        bench_read_play_update_command_block
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateCommandBlockMinecart,
+        PlayUpdateCommandBlockMinecartSpec,
+        test_play_update_command_block_minecart,
+        bench_write_play_update_command_block_minecart,
+        bench_read_play_update_command_block_minecart
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateJigsawBlock,
+        PlayUpdateJigsawBlockSpec,
+        test_play_update_jigsaw_block,
+        bench_write_play_update_jigsaw_block,
+        bench_read_play_update_jigsaw_block
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayCreativeInventoryAction,
+        PlayCreativeInventoryActionSpec,
+        test_play_creative_inventory_action,
+        bench_write_play_creative_inventory_action,
+        bench_read_play_creative_inventory_action
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateStructureBlock,
+        PlayUpdateStructureBlockSpec,
+        test_play_update_structure_block,
+        bench_write_play_update_structure_block,
+        bench_read_play_update_structure_block
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUpdateSign,
+        PlayUpdateSignSpec,
+        test_play_update_sign,
+        bench_write_play_update_sign,
+        bench_read_play_update_sign
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayClientAnimation,
+        PlayClientAnimationSpec,
+        test_play_client_animation,
+        bench_write_play_client_animation,
+        bench_read_play_client_animation
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlaySpectate,
+        PlaySpectateSpec,
+        test_play_spectate,
+        bench_write_play_spectate,
+        bench_read_play_spectate
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayBlockPlacement,
+        PlayBlockPlacementSpec,
+        test_play_block_placement,
+        bench_write_play_block_placement,
+        bench_read_play_block_placement
+    );
+
+    packet_test_cases!(
+        RawPacket755,
+        Packet755,
+        PlayUseItem,
+        PlayUseItemSpec,
+        test_play_use_item,
+        bench_write_play_use_item,
+        bench_read_play_use_item
+    );
 
     // trust me, this is some cutting edge shit
     // I'm definitely not generating code using a unit test
