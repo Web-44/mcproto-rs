@@ -11,7 +11,7 @@ use fmt::Debug;
 #[cfg(all(test, feature = "std"))]
 use crate::protocol::TestRandom;
 
-define_protocol!(755, Packet755, RawPacket755, RawPacket755Body, Packet755Kind => {
+define_protocol!(756, Packet756, RawPacket756, RawPacket756Body, Packet756Kind => {
     // handshaking
     Handshake, 0x00, Handshaking, ServerBound => HandshakeSpec {
         version: VarInt,
@@ -172,7 +172,9 @@ define_protocol!(755, Packet755, RawPacket755, RawPacket755Body, Packet755Kind =
     },
     PlayWindowItems, 0x14, Play, ClientBound => PlayWindowItemsSpec {
         window_id: u8,
-        slots: CountedArray<Slot, i16>
+        state_id: VarInt,
+        slots: CountedArray<Slot, VarInt>,
+        carried_item: Slot
     },
     PlayWindowProperty, 0x15, Play, ClientBound => PlayWindowPropertySpec {
         window_id: u8,
@@ -380,8 +382,8 @@ define_protocol!(755, Packet755, RawPacket755, RawPacket755Body, Packet755Kind =
         recipe_ids: CountedArray<String, VarInt>,
         other_recipe_ids: RemainingBytes // todo
     },
-    PlayDestroyEntity, 0x3A, Play, ClientBound => PlayDestroyEntitySpec {
-        entity_id: VarInt
+    PlayDestroyEntities, 0x3A, Play, ClientBound => PlayDestroyEntitySpec {
+        entity_ids: CountedArray<VarInt, VarInt>
     },
     PlayRemoveEntityEffect, 0x3B, Play, ClientBound => PlayRemoveEntityEffectSpec {
         entity_id: VarInt,
@@ -608,6 +610,7 @@ define_protocol!(755, Packet755, RawPacket755, RawPacket755Body, Packet755Kind =
     },
     PlayClickWindow, 0x08, Play, ServerBound => PlayClickWindowSpec {
         window_id: u8, // TODO: should be u8?
+        state_id: VarInt,
         slot: i16,
         button: i8,
         mode: InventoryOperationMode,
@@ -622,9 +625,9 @@ define_protocol!(755, Packet755, RawPacket755, RawPacket755Body, Packet755Kind =
         data: RemainingBytes
     },
     PlayEditBook, 0x0B, Play, ServerBound => PlayEditBookSpec {
-        new_book: Slot,
-        is_signing: bool,
         hand: Hand
+        pages: CountedArray<String, VarInt>,
+        title: Option<String>,
     },
     PlayQueryEntityNbt, 0x0C, Play, ServerBound => PlayQueryEntityNbtSpec {
         transaction_id: VarInt,

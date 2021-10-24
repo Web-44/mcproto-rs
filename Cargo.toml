@@ -24,7 +24,7 @@ default-features = false
 flate2 = "1.0.17"
 
 [features]
-default = [ "std", "bench", "v1_15_2", "v1_16_3", "v1_17_0" ]
+default = [ "std", "bench", "v1_15_2", "v1_16_3", "v1_17_0", "v1_17_1" ]
 
 std = [ "rand" ]
 bench = []
@@ -33,3 +33,4 @@ gat = []
 v1_15_2 = []
 v1_16_3 = []
 v1_17_0 = []
+v1_17_1 = []
