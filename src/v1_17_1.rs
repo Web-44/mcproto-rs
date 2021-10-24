@@ -625,9 +625,9 @@ define_protocol!(756, Packet756, RawPacket756, RawPacket756Body, Packet756Kind =
         data: RemainingBytes
     },
     PlayEditBook, 0x0B, Play, ServerBound => PlayEditBookSpec {
-        hand: Hand
+        hand: Hand,
         pages: CountedArray<String, VarInt>,
-        title: Option<String>,
+        title: Option<String>
     },
     PlayQueryEntityNbt, 0x0C, Play, ServerBound => PlayQueryEntityNbtSpec {
         transaction_id: VarInt,
