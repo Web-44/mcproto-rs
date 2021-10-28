@@ -129,6 +129,7 @@ pub trait RawPacket<'a>: HasPacketId + Sized {
 
 pub trait Packet: HasPacketId + HasPacketBody + Sized {}
 
+#[derive(Clone)]
 pub enum PacketErr {
     UnknownId(Id),
     DeserializeFailed(DeserializeErr),

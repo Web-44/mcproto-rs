@@ -1,6 +1,7 @@
 use crate::types::VarInt;
 use alloc::{vec::Vec, string::{FromUtf8Error, String}, fmt};
 
+#[derive(Clone)]
 pub enum DeserializeErr {
     Eof,
     VarNumTooLong(Vec<u8>),
