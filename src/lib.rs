@@ -26,6 +26,8 @@ pub mod v1_16_3;
 pub mod v1_17_0;
 #[cfg(feature = "v1_17_1")]
 pub mod v1_17_1;
+#[cfg(feature = "v1_19")]
+pub mod v1_19;
 
 pub use deserialize::*;
 pub use serialize::*;
