@@ -54,11 +54,12 @@ define_protocol!(759, Packet759, RawPacket759, RawPacket759Body, Packet759Kind =
         data: RemainingBytes
     },
     LoginStart, 0x00, Login, ServerBound => LoginStartSpec {
-        name: String
+        name: String,
+        signature_data: Option<LoginSignatureData>
     },
     LoginEncryptionResponse, 0x01, Login, ServerBound => LoginEncryptionResponseSpec {
         shared_secret: CountedArray<u8, VarInt>,
-        verify_token: CountedArray<u8, VarInt>
+        encryption_data: EncryptionResponseData
     },
     LoginPluginResponse, 0x02, Login, ServerBound => LoginPluginResponseSpec {
         message_id: VarInt,
@@ -794,6 +795,22 @@ proto_byte_enum!(HandshakeNextState,
     0x01 :: Status,
     0x02 :: Login
 );
+
+proto_struct!(LoginSignatureData {
+    key_expires: i64,
+    public_key: Option<CountedArray<u8, VarInt>>,
+    signature: Option<CountedArray<u8, VarInt>>
+});
+
+proto_byte_enum!(EncryptionResponseData,
+    0x00 :: KeySignature(EncryptionResponseKeySignatureData),
+    0x01 :: VerifyToken(CountedArray<u8, VarInt>)
+);
+
+proto_struct!(EncryptionResponseKeySignatureData {
+    salt: i64,
+    signature: CountedArray<u8, VarInt>
+});
 
 proto_byte_enum!(CardinalDirection,
     0x00 :: South,
