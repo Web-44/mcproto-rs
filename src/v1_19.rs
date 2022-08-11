@@ -798,8 +798,8 @@ proto_byte_enum!(HandshakeNextState,
 
 proto_struct!(LoginSignatureData {
     key_expires: i64,
-    public_key: Option<CountedArray<u8, VarInt>>,
-    signature: Option<CountedArray<u8, VarInt>>
+    public_key: CountedArray<u8, VarInt>,
+    signature: CountedArray<u8, VarInt>
 });
 
 proto_byte_enum!(EncryptionResponseData,
