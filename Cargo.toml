@@ -24,7 +24,7 @@ default-features = false
 flate2 = "1.0.17"
 
 [features]
-default = [ "std", "bench" ]
+default = [ "std" ]
 
 std = [ "rand" ]
 bench = []
