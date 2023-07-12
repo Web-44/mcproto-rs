@@ -368,7 +368,7 @@ define_protocol!(763, Packet763, RawPacket763, RawPacket763Body, Packet763Kind =
     },
     PlayPlayerInfoRemove, 0x39, Play, ClientBound => PlayPlayerInfoRemoveSpec {
         players: CountedArray<UUID4, VarInt>
-    }
+    },
     PlayPlayerInfo, 0x3A, Play, ClientBound => PlayPlayerInfoSpec {
         actions: PlayerInfoActionList
     },
