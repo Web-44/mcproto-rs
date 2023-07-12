@@ -626,7 +626,7 @@ define_protocol!(763, Packet763, RawPacket763, RawPacket763Body, Packet763Kind =
         argument_signatures: CountedArray<ArgumentSignature, VarInt>,
         message_count: VarInt,
         acknowledged: RemainingBytes
-    }
+    },
     PlayClientChatMessage, 0x05, Play, ServerBound => PlayClientChatMessageSpec {
         message: String,
         timestamp: u64,
@@ -1091,7 +1091,7 @@ proto_struct!(ArgumentSignature {
     signature: ByteArray256
 });
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ByteArray256 {
     pub inner: Vec<u8>
 }
@@ -2282,7 +2282,7 @@ proto_struct!(PlayerInfoAction<A> {
 
 proto_varint_enum!(PlayerInfoActionList,
     0x00 :: Add(CountedArray<PlayerInfoAction<PlayerAddActionSpec>, VarInt>),
-    0x01 :: InitChat(CountedArray<Option<PlayerInitChatSignatureData>, VarInt>)
+    0x01 :: InitChat(CountedArray<Option<PlayerInitChatSignatureData>, VarInt>),
     0x02 :: UpdateGameMode(CountedArray<PlayerInfoAction<GameMode>, VarInt>),
     0x03 :: UpdateListed(CountedArray<PlayerInfoAction<bool>, VarInt>),
     0x04 :: UpdateLatency(CountedArray<PlayerInfoAction<VarInt>, VarInt>),
