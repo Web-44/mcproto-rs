@@ -18,6 +18,10 @@ pub struct StatusSpec {
     pub description: Chat,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub favicon: Option<StatusFaviconSpec>,
+    #[serde(rename = "enforcesSecureChat")]
+    pub enforces_secure_chat: bool,
+    #[serde(rename = "previewsChat")]
+    pub previews_chat: bool
 }
 
 impl McSerialize for StatusSpec {
@@ -58,6 +62,8 @@ impl TestRandom for StatusSpec {
             },
             favicon: None,
             description: Chat::test_gen_random(),
+            enforces_secure_chat: false,
+            previews_chat: false
         }
     }
 }
