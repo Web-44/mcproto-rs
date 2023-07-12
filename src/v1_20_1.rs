@@ -5176,7 +5176,7 @@ pub mod tests {
     // I'm definitely not generating code using a unit test
     #[test]
     fn test_generate_test_cases() {
-        Packet759::describe().packets.iter().map(move |packet| {
+        Packet763::describe().packets.iter().map(move |packet| {
             let snake_case = to_snake_case(packet.name.clone());
             alloc::format!("packet_test_cases!(RawPacket759, Packet759, {}, {},\n        test_{}, bench_write_{}, bench_read_{});\n",
                            packet.name, packet.body_struct, snake_case, snake_case, snake_case).to_owned()
