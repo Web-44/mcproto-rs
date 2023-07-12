@@ -12,7 +12,7 @@ More documentation to come, just dumping the code since I finished it.
 Usage:
 ```toml
 [dependencies]
-mcproto-rs = "0.2.0"
+mcproto-rs = { git = "https://github.com/Web-44/mcproto-rs.git", features = ["v1_15_2"] }
 ```
 
 ## `#![no_std]`
