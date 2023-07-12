@@ -1104,11 +1104,13 @@ impl Serialize for ByteArray256 {
 
 impl Deserialize for ByteArray256 {
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
-        mc_deserialize_fixed_byte_array(&data, 256)
+        Ok(mc_deserialize_fixed_byte_array(&data, 256).map(|inner| ByteArray256 {
+            inner
+        }))
     }
 }
 
-fn mc_deserialize_fixed_byte_array(mut data: &[u8], size: usize) -> DeserializeResult<'_, Self> {
+fn mc_deserialize_fixed_byte_array<T>(mut data: &[u8], size: usize) -> Deserialized<'_, T> {
     let mut inner = Vec::with_capacity(size);
 
     for _ in 0..size {
@@ -1117,9 +1119,7 @@ fn mc_deserialize_fixed_byte_array(mut data: &[u8], size: usize) -> DeserializeR
         inner.push(value);
     }
 
-    Deserialized::ok(ByteArray256 {
-        inner
-    }, &data)
+    Deserialized::create(inner, &data)
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
