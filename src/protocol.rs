@@ -25,6 +25,12 @@ pub enum State {
     Play,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        State::Handshaking
+    }
+}
+
 impl State {
     pub fn name(&self) -> String {
         use State::*;
