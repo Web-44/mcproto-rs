@@ -2872,20 +2872,20 @@ pub struct RecipeSpec {
 proto_str_enum!(Recipe,
     "minecraft:crafting_shapeless" :: CraftingShapeless(RecipeCraftingShapelessSpec),
     "minecraft:crafting_shaped" :: CraftingShaped(RecipeCraftingShapedSpec),
-    "minecraft:crafting_special_armordye" :: CraftingArmorDye,
-    "minecraft:crafting_special_bookcloning" :: CraftingBookCloning,
-    "minecraft:crafting_special_mapcloning" :: CraftingMapCloning,
-    "minecraft:crafting_special_mapextending" :: CraftingMapExtending,
-    "minecraft:crafting_special_firework_rocket" :: CraftingFireworkRocket,
-    "minecraft:crafting_special_firework_star" :: CraftingFireworkStar,
-    "minecraft:crafting_special_firework_star_fade" :: CraftingFireworkStarFade,
-    "minecraft:crafting_special_repairitem" :: CraftingRepairItem,
-    "minecraft:crafting_special_tippedarrow" :: CraftingTippedArrow,
-    "minecraft:crafting_special_bannerduplicate" :: CraftingBannerDuplicate,
-    "minecraft:crafting_special_banneraddpattern" :: CraftingBannerAddPattern,
-    "minecraft:crafting_special_shielddecoration" :: CraftingShieldDecoration,
-    "minecraft:crafting_special_shulkerboxcoloring" :: CraftingShulkerBoxColoring,
-    "minecraft:crafting_special_suspiciousstew" :: CraftingSuspiciousStew,
+    "minecraft:crafting_special_armordye" :: CraftingArmorDye(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_bookcloning" :: CraftingBookCloning(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_mapcloning" :: CraftingMapCloning(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_mapextending" :: CraftingMapExtending(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_firework_rocket" :: CraftingFireworkRocket(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_firework_star" :: CraftingFireworkStar(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_firework_star_fade" :: CraftingFireworkStarFade(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_repairitem" :: CraftingRepairItem(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_tippedarrow" :: CraftingTippedArrow(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_bannerduplicate" :: CraftingBannerDuplicate(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_shielddecoration" :: CraftingShieldDecoration(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_shulkerboxcoloring" :: CraftingShulkerBoxColoring(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_suspiciousstew" :: CraftingSuspiciousStew(RecipeCraftingCommonSpec),
+    "minecraft:crafting_special_decorated_pot" :: CraftingDecoratedPot(RecipeCraftingCommonSpec),
     "minecraft:smelting" :: Smelting(RecipeSmeltingSpec),
     "minecraft:blasting" :: Blasting(RecipeSmeltingSpec),
     "minecraft:smoking" :: Smoking(RecipeSmeltingSpec),
@@ -2933,6 +2933,10 @@ impl TestRandom for RecipeSpec {
 
 proto_struct!(RecipeIngredient {
     items: CountedArray<Slot, VarInt>
+});
+
+proto_struct!(RecipeCraftingCommonSpec {
+    category: VarInt
 });
 
 proto_struct!(RecipeCraftingShapelessSpec {
