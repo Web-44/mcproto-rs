@@ -2891,7 +2891,8 @@ proto_str_enum!(Recipe,
     "minecraft:smoking" :: Smoking(RecipeSmeltingSpec),
     "minecraft:campfire_cooking" :: CampfireCooking(RecipeSmeltingSpec),
     "minecraft:stonecutting" :: StoneCutting(RecipeStonecuttingSpec),
-    "minecraft:smithing" :: Smithing(RecipeSmithingSpec)
+    "minecraft:smithing_transform" :: SmithingTransform(RecipeSmithingTransformSpec),
+    "minecraft:smithing_trim" :: SmithingTrim(RecipeSmithingTrimSpec)
 );
 
 impl Serialize for RecipeSpec {
@@ -2936,6 +2937,7 @@ proto_struct!(RecipeIngredient {
 
 proto_struct!(RecipeCraftingShapelessSpec {
     group: String,
+    category: VarInt,
     ingredients: CountedArray<RecipeIngredient, VarInt>,
     result: Slot
 });
@@ -2945,8 +2947,10 @@ pub struct RecipeCraftingShapedSpec {
     pub width: VarInt,
     pub height: VarInt,
     pub group: String,
+    pub category: VarInt,
     pub ingredients: Vec<RecipeIngredient>,
     pub result: Slot,
+    pub notify: bool
 }
 
 impl Serialize for RecipeCraftingShapedSpec {
@@ -2954,10 +2958,12 @@ impl Serialize for RecipeCraftingShapedSpec {
         to.serialize_other(&self.width)?;
         to.serialize_other(&self.height)?;
         to.serialize_other(&self.group)?;
+        to.serialize_other(&self.category)?;
         for elem in &self.ingredients {
             to.serialize_other(elem)?;
         }
         to.serialize_other(&self.result)?;
+        to.serialize_other(&self.notify)?;
         Ok(())
     }
 }
@@ -2973,6 +2979,10 @@ impl Deserialize for RecipeCraftingShapedSpec {
             value: group,
             mut data,
         } = <String>::mc_deserialize(data)?;
+        let Deserialized {
+            value: category,
+            mut data,
+        } = <VarInt>::mc_deserialize(data)?;
 
         let ingredients_count = width.0 as usize * height.0 as usize;
         let mut ingredients: Vec<RecipeIngredient> = Vec::with_capacity(ingredients_count);
@@ -2990,13 +3000,20 @@ impl Deserialize for RecipeCraftingShapedSpec {
             data,
         } = Slot::mc_deserialize(data)?;
 
+        let Deserialized {
+            value: notify,
+            mut data,
+        } = <bool>::mc_deserialize(data)?;
+
         Deserialized::ok(
             Self {
                 width,
                 height,
                 group,
+                category,
                 ingredients,
                 result,
+                notify
             },
             data,
         )
@@ -3022,14 +3039,17 @@ impl TestRandom for RecipeCraftingShapedSpec {
             width,
             height,
             group: String::test_gen_random(),
+            category: VarInt::test_gen_random(),
             ingredients,
             result: Some(ItemStack::test_gen_random()),
+            notify: bool::test_gen_random()
         }
     }
 }
 
 proto_struct!(RecipeSmeltingSpec {
     group: String,
+    category: VarInt,
     ingredient: RecipeIngredient,
     result: Slot,
     experience: f32,
@@ -3042,10 +3062,17 @@ proto_struct!(RecipeStonecuttingSpec {
     result: Slot
 });
 
-proto_struct!(RecipeSmithingSpec {
+proto_struct!(RecipeSmithingTransformSpec {
+    template: RecipeIngredient,
     base: RecipeIngredient,
     addition: RecipeIngredient,
     result: Slot
+});
+
+proto_struct!(RecipeSmithingTrimSpec {
+    template: RecipeIngredient,
+    base: RecipeIngredient,
+    addition: RecipeIngredient
 });
 
 proto_varint_enum!(RecipeUnlockAction,
