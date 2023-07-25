@@ -138,8 +138,8 @@ pub trait Packet: HasPacketId + HasPacketBody + Sized {}
 #[derive(Clone)]
 pub enum PacketErr {
     UnknownId(Id),
-    DeserializeFailed(DeserializeErr),
-    ExtraData(Vec<u8>),
+    DeserializeFailed(Id, DeserializeErr),
+    ExtraData(Id, Vec<u8>),
 }
 
 impl fmt::Display for PacketErr {
@@ -147,12 +147,12 @@ impl fmt::Display for PacketErr {
         use PacketErr::*;
         match self {
             UnknownId(id) => f.write_fmt(format_args!("unknown packet id {:?}", id)),
-            DeserializeFailed(err) => {
-                f.write_fmt(format_args!("failed to deserialize packet: {:?}", err))
+            DeserializeFailed(id, err) => {
+                f.write_fmt(format_args!("failed to deserialize packet {}/{}: {:?}", id.state.name(), id.id, err))
             }
-            ExtraData(data) => f.write_fmt(format_args!(
-                "extra data unparsed at end of packet: {:?}",
-                data
+            ExtraData(id, data) => f.write_fmt(format_args!(
+                "extra data unparsed at end of packet {}/{}: {:?}",
+                id.state.name(), id.id, data
             )),
         }
     }
@@ -389,9 +389,9 @@ macro_rules! define_protocol {
                     $($rawpackett::$nam(bod) => {
                         let Deserialized { value: body, data: rest } =
                             $body::mc_deserialize(bod.data)
-                                .map_err(move |err| DeserializeFailed(err))?;
+                                .map_err(move |err| DeserializeFailed(self.id(), err))?;
                         if !rest.is_empty() {
-                            Err(ExtraData(rest.to_vec()))
+                            Err(ExtraData(self.id(), rest.to_vec()))
                         } else {
                             Ok($packett::$nam(body))
                         }
@@ -410,9 +410,9 @@ macro_rules! define_protocol {
             pub fn deserialize(&self) -> Result<T, crate::protocol::PacketErr> {
                 use crate::protocol::PacketErr::*;
 
-                let Deserialized { value: body, data: rest } = T::mc_deserialize(self.data).map_err(DeserializeFailed)?;
+                let Deserialized { value: body, data: rest } = T::mc_deserialize(self.data).map_err(self.id(), DeserializeFailed)?;
                 if !rest.is_empty() {
-                    Err(ExtraData(rest.to_vec()))
+                    Err(ExtraData(self.id(), rest.to_vec()))
                 } else {
                     Ok(body)
                 }
