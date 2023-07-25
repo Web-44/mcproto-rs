@@ -87,14 +87,6 @@ define_protocol!(763, Packet763, RawPacket763, RawPacket763Body, Packet763Kind =
         position: Vec3<f64>,
         count: i16
     },
-    PlaySpawnLivingEntity, 0x02, Play, ClientBound => PlaySpawnLivingEntitySpec {
-        entity_id: VarInt,
-        entity_uuid: UUID4,
-        entity_type: VarInt,
-        location: EntityLocation<f64, Angle>,
-        head_pitch: Angle,
-        velocity: Vec3<i16>
-    },
     PlaySpawnPlayer, 0x03, Play, ClientBound => PlaySpawnPlayerSpec {
         entity_id: VarInt,
         uuid: UUID4,
