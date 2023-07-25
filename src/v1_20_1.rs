@@ -7,6 +7,7 @@ use alloc::{
     vec::Vec,
 };
 use fmt::Debug;
+use rand::RngCore;
 
 #[cfg(all(test, feature = "std"))]
 use crate::protocol::TestRandom;
@@ -1086,6 +1087,17 @@ proto_struct!(ArgumentSignature {
 #[derive(Clone, PartialEq, Debug)]
 pub struct ByteArray256 {
     pub inner: Vec<u8>
+}
+
+#[cfg(all(test, feature = "std"))]
+impl TestRandom for ByteArray256 {
+    fn test_gen_random() -> Self {
+        let mut inner = [0u8; 256];
+        rand::thread_rng().fill_bytes(&mut inner);
+        Self {
+            inner: inner.to_vec()
+        }
+    }
 }
 
 impl Serialize for ByteArray256 {
@@ -2973,7 +2985,7 @@ impl Deserialize for RecipeCraftingShapedSpec {
         } = <VarInt>::mc_deserialize(data)?;
         let Deserialized {
             value: group,
-            mut data,
+            data,
         } = <String>::mc_deserialize(data)?;
         let Deserialized {
             value: category,
@@ -2998,7 +3010,7 @@ impl Deserialize for RecipeCraftingShapedSpec {
 
         let Deserialized {
             value: notify,
-            mut data,
+            data,
         } = <bool>::mc_deserialize(data)?;
 
         Deserialized::ok(
@@ -3666,8 +3678,8 @@ pub mod tests {
     use crate::packet_test_cases;
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         Handshake,
         HandshakeSpec,
         test_handshake,
@@ -3676,8 +3688,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         StatusRequest,
         StatusRequestSpec,
         test_status_request,
@@ -3686,8 +3698,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         StatusPing,
         StatusPingSpec,
         test_status_ping,
@@ -3696,8 +3708,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         StatusResponse,
         StatusResponseSpec,
         test_status_response,
@@ -3706,8 +3718,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         StatusPong,
         StatusPongSpec,
         test_status_pong,
@@ -3716,8 +3728,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginDisconnect,
         LoginDisconnectSpec,
         test_login_disconnect,
@@ -3726,8 +3738,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginEncryptionRequest,
         LoginEncryptionRequestSpec,
         test_login_encryption_request,
@@ -3736,8 +3748,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginSuccess,
         LoginSuccessSpec,
         test_login_success,
@@ -3746,8 +3758,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginSetCompression,
         LoginSetCompressionSpec,
         test_login_set_compression,
@@ -3756,8 +3768,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginPluginRequest,
         LoginPluginRequestSpec,
         test_login_plugin_request,
@@ -3766,8 +3778,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginStart,
         LoginStartSpec,
         test_login_start,
@@ -3776,8 +3788,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginEncryptionResponse,
         LoginEncryptionResponseSpec,
         test_login_encryption_response,
@@ -3786,8 +3798,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         LoginPluginResponse,
         LoginPluginResponseSpec,
         test_login_plugin_response,
@@ -3796,8 +3808,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySpawnEntity,
         PlaySpawnEntitySpec,
         test_play_spawn_entity,
@@ -3806,8 +3818,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySpawnExperienceOrb,
         PlaySpawnExperienceOrbSpec,
         test_play_spawn_experience_orb,
@@ -3816,28 +3828,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlaySpawnLivingEntity,
-        PlaySpawnLivingEntitySpec,
-        test_play_spawn_living_entity,
-        bench_write_play_spawn_living_entity,
-        bench_read_play_spawn_living_entity
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlaySpawnPainting,
-        PlaySpawnPaintingSpec,
-        test_play_spawn_painting,
-        bench_write_play_spawn_painting,
-        bench_read_play_spawn_painting
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySpawnPlayer,
         PlaySpawnPlayerSpec,
         test_play_spawn_player,
@@ -3846,8 +3838,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityAnimation,
         PlayEntityAnimationSpec,
         test_play_entity_animation,
@@ -3856,8 +3848,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayStatistics,
         PlayStatisticsSpec,
         test_play_statistics,
@@ -3866,18 +3858,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayAcknowledgePlayerDigging,
-        PlayAcknowledgePlayerDiggingSpec,
-        test_play_acknowledge_player_digging,
-        bench_write_play_acknowledge_player_digging,
-        bench_read_play_acknowledge_player_digging
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayBlockBreakAnimation,
         PlayBlockBreakAnimationSpec,
         test_play_block_break_animation,
@@ -3886,8 +3868,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayBlockEntityData,
         PlayBlockEntityDataSpec,
         test_play_block_entity_data,
@@ -3896,8 +3878,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayBlockAction,
         PlayBlockActionSpec,
         test_play_block_action,
@@ -3906,8 +3888,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayBlockChange,
         PlayBlockChangeSpec,
         test_play_block_change,
@@ -3916,8 +3898,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayBossBar,
         PlayBossBarSpec,
         test_play_boss_bar,
@@ -3926,8 +3908,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerDifficulty,
         PlayServerDifficultySpec,
         test_play_server_difficulty,
@@ -3936,18 +3918,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayServerChatMessage,
-        PlayServerChatMessageSpec,
-        test_play_server_chat_message,
-        bench_write_play_server_chat_message,
-        bench_read_play_server_chat_message
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayTabComplete,
         PlayTabCompleteSpec,
         test_play_tab_complete,
@@ -3956,8 +3928,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayDeclareCommands,
         PlayDeclareCommandsSpec,
         test_play_declare_commands,
@@ -3966,8 +3938,8 @@ pub mod tests {
     );
 
     // packet_test_cases!(
-    //     RawPacket759,
-    //     Packet759,
+    //     RawPacket763,
+    //     Packet763,
     //     PlayServerWindowConfirmation,
     //     PlayServerWindowConfirmationSpec,
     //     test_play_server_window_confirmation,
@@ -3976,8 +3948,8 @@ pub mod tests {
     // );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerCloseWindow,
         PlayServerCloseWindowSpec,
         test_play_server_close_window,
@@ -3986,8 +3958,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayWindowItems,
         PlayWindowItemsSpec,
         test_play_window_items,
@@ -3996,8 +3968,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayWindowProperty,
         PlayWindowPropertySpec,
         test_play_window_property,
@@ -4006,8 +3978,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetSlot,
         PlaySetSlotSpec,
         test_play_set_slot,
@@ -4016,8 +3988,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetCooldown,
         PlaySetCooldownSpec,
         test_play_set_cooldown,
@@ -4026,8 +3998,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerPluginMessage,
         PlayServerPluginMessageSpec,
         test_play_server_plugin_message,
@@ -4036,18 +4008,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayNamedSoundEffect,
-        PlayNamedSoundEffectSpec,
-        test_play_named_sound_effect,
-        bench_write_play_named_sound_effect,
-        bench_read_play_named_sound_effect
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayDisconnect,
         PlayDisconnectSpec,
         test_play_disconnect,
@@ -4056,8 +4018,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityStatus,
         PlayEntityStatusSpec,
         test_play_entity_status,
@@ -4066,8 +4028,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayExplosion,
         PlayExplosionSpec,
         test_play_explosion,
@@ -4076,8 +4038,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUnloadChunk,
         PlayUnloadChunkSpec,
         test_play_unload_chunk,
@@ -4086,8 +4048,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayChangeGameState,
         PlayChangeGameStateSpec,
         test_play_change_game_state,
@@ -4096,8 +4058,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayOpenHorseWindow,
         PlayOpenHorseWindowSpec,
         test_play_open_horse_window,
@@ -4106,8 +4068,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerKeepAlive,
         PlayServerKeepAliveSpec,
         test_play_server_keep_alive,
@@ -4116,8 +4078,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayChunkData,
         PlayChunkDataWrapper,
         test_play_chunk_data,
@@ -4126,8 +4088,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEffect,
         PlayEffectSpec,
         test_play_effect,
@@ -4136,8 +4098,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayParticle,
         PlayParticleSpec,
         test_play_particle,
@@ -4146,8 +4108,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateLight,
         PlayUpdateLightSpec,
         test_play_update_light,
@@ -4156,8 +4118,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayJoinGame,
         PlayJoinGameSpec,
         test_play_join_game,
@@ -4166,8 +4128,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayMapData,
         PlayMapDataSpec,
         test_play_map_data,
@@ -4176,8 +4138,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayTradeList,
         PlayTradeListSpec,
         test_play_trade_list,
@@ -4186,8 +4148,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityPosition,
         PlayEntityPositionSpec,
         test_play_entity_position,
@@ -4196,8 +4158,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityPositionAndRotation,
         PlayEntityPositionAndRotationSpec,
         test_play_entity_position_and_rotation,
@@ -4206,8 +4168,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityRotation,
         PlayEntityRotationSpec,
         test_play_entity_rotation,
@@ -4216,18 +4178,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayEntityMovement,
-        PlayEntityMovementSpec,
-        test_play_entity_movement,
-        bench_write_play_entity_movement,
-        bench_read_play_entity_movement
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerVehicleMove,
         PlayEntityVehicleMoveSpec,
         test_play_server_vehicle_move,
@@ -4236,8 +4188,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayOpenBook,
         PlayOpenBookSpec,
         test_play_open_book,
@@ -4246,8 +4198,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayOpenWindow,
         PlayOpenWindowSpec,
         test_play_open_window,
@@ -4256,8 +4208,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayOpenSignEditor,
         PlayOpenSignEditorSpec,
         test_play_open_sign_editor,
@@ -4266,8 +4218,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayCraftRecipeResponse,
         PlayCraftRecipeResponseSpec,
         test_play_craft_recipe_response,
@@ -4276,8 +4228,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerPlayerAbilities,
         PlayServerPlayerAbilitiesSpec,
         test_play_server_player_abilities,
@@ -4286,18 +4238,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayCombatEvent,
-        PlayCombatEventSpec,
-        test_play_combat_event,
-        bench_write_play_combat_event,
-        bench_read_play_combat_event
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayPlayerInfo,
         PlayPlayerInfoSpec,
         test_play_player_info,
@@ -4306,8 +4248,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayFacePlayer,
         PlayFacePlayerSpec,
         test_play_face_player,
@@ -4316,8 +4258,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerPlayerPositionAndLook,
         PlayServerPlayerPositionAndLookSpec,
         test_play_server_player_position_and_look,
@@ -4326,8 +4268,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUnlockRecipes,
         PlayUnlockRecipesSpec,
         test_play_unlock_recipes,
@@ -4336,18 +4278,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayDestroyEntities,
-        PlayDestroyEntitiesSpec,
-        test_play_destroy_entities,
-        bench_write_play_destroy_entities,
-        bench_read_play_destroy_entities
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayRemoveEntityEffect,
         PlayRemoveEntityEffectSpec,
         test_play_remove_entity_effect,
@@ -4356,8 +4288,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayResourcePackSend,
         PlayResourcePackSendSpec,
         test_play_resource_pack_send,
@@ -4366,8 +4298,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayRespawn,
         PlayRespawnSpec,
         test_play_respawn,
@@ -4376,8 +4308,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityHeadLook,
         PlayEntityHeadLookSpec,
         test_play_entity_head_look,
@@ -4386,8 +4318,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayMultiBlockChange,
         PlayMultiBlockChangeSpec,
         test_play_multi_block_change,
@@ -4396,8 +4328,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySelectAdvancementTab,
         PlaySelectAdvancementTabSpec,
         test_play_select_advancement_tab,
@@ -4406,18 +4338,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayWorldBorder,
-        PlayWorldBorderSpec,
-        test_play_world_border,
-        bench_write_play_world_border,
-        bench_read_play_world_border
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayCamera,
         PlayCameraSpec,
         test_play_camera,
@@ -4426,8 +4348,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayServerHeldItemChange,
         PlayServerHeldItemChangeSpec,
         test_play_server_held_item_change,
@@ -4436,8 +4358,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateViewPosition,
         PlayUpdateViewPositionSpec,
         test_play_update_view_position,
@@ -4446,8 +4368,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateViewDistance,
         PlayUpdateViewDistanceSpec,
         test_play_update_view_distance,
@@ -4456,8 +4378,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySpawnPosition,
         PlaySpawnPositionSpec,
         test_play_spawn_position,
@@ -4466,8 +4388,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayDisplayScoreboard,
         PlayDisplayScoreboardSpec,
         test_play_display_scoreboard,
@@ -4476,8 +4398,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityMetadata,
         PlayEntityMetadataSpec,
         test_play_entity_metadata,
@@ -4486,8 +4408,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayAttachEntity,
         PlayAttachEntitySpec,
         test_play_attach_entity,
@@ -4496,8 +4418,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityVelocity,
         PlayEntityVelocitySpec,
         test_play_entity_velocity,
@@ -4506,8 +4428,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityEquipment,
         PlayEntityEquiptmentSpec,
         test_play_entity_equipment,
@@ -4516,8 +4438,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetExperience,
         PlaySetExperienceSpec,
         test_play_set_experience,
@@ -4526,18 +4448,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayUpdatehealth,
-        PlayUpdateHealthSpec,
-        test_play_updatehealth,
-        bench_write_play_updatehealth,
-        bench_read_play_updatehealth
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayScoreboardObjective,
         PlayScoreboardObjectiveSpec,
         test_play_scoreboard_objective,
@@ -4546,8 +4458,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetPassengers,
         PlaySetPassengersSpec,
         test_play_set_passengers,
@@ -4556,8 +4468,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayTeams,
         PlayTeamsSpec,
         test_play_teams,
@@ -4566,8 +4478,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateScore,
         PlayUpdateScoreSpec,
         test_play_update_score,
@@ -4576,8 +4488,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayTimeUpdate,
         PlayTimeUpdateSpec,
         test_play_time_update,
@@ -4586,18 +4498,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayTitle,
-        PlayTitleSpec,
-        test_play_title,
-        bench_write_play_title,
-        bench_read_play_title
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntitySoundEffect,
         PlayEntitySoundEffectSpec,
         test_play_entity_sound_effect,
@@ -4606,8 +4508,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySoundEffect,
         PlaySoundEffectSpec,
         test_play_sound_effect,
@@ -4616,8 +4518,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayStopSound,
         PlayStopSoundSpec,
         test_play_stop_sound,
@@ -4626,8 +4528,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayerPlayerListHeaderAndFooter,
         PlayPlayerListHeaderAndFooterSpec,
         test_player_player_list_header_and_footer,
@@ -4636,8 +4538,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayNbtQueryResponse,
         PlayNbtQueryResponseSpec,
         test_play_nbt_query_response,
@@ -4646,8 +4548,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayCollectItem,
         PlayCollectItemSpec,
         test_play_collect_item,
@@ -4656,8 +4558,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityTeleport,
         PlayEntityTeleportSpec,
         test_play_entity_teleport,
@@ -4666,8 +4568,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayAdvancements,
         PlayAdvancementsSpec,
         test_play_advancements,
@@ -4676,8 +4578,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityProperties,
         PlayEntityPropertiesSpec,
         test_play_entity_properties,
@@ -4686,8 +4588,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityEffect,
         PlayEntityEffectSpec,
         test_play_entity_effect,
@@ -4696,8 +4598,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayDeclareRecipes,
         PlayDeclareRecipesSpec,
         test_play_declare_recipes,
@@ -4706,8 +4608,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayTags,
         PlayTagsSpec,
         test_play_tags,
@@ -4716,8 +4618,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayTeleportConfirm,
         PlayTeleportConfirmSpec,
         test_play_teleport_confirm,
@@ -4726,8 +4628,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayQueryBlockNbt,
         PlayQueryBlockNbtSpec,
         test_play_query_block_nbt,
@@ -4736,8 +4638,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayQueryEntityNbt,
         PlayQueryEntityNbtSpec,
         test_play_query_entity_nbt,
@@ -4746,8 +4648,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetDifficulty,
         PlaySetDifficultySpec,
         test_play_set_difficulty,
@@ -4756,8 +4658,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientChatMessage,
         PlayClientChatMessageSpec,
         test_play_client_chat_message,
@@ -4766,8 +4668,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientStatus,
         PlayClientStatusSpec,
         test_play_client_status,
@@ -4776,8 +4678,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientSettings,
         PlayClientSettingsSpec,
         test_play_client_settings,
@@ -4786,8 +4688,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientTabComplete,
         PlayClientTabCompleteSpec,
         test_play_client_tab_complete,
@@ -4796,18 +4698,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
-        PlayClientWindowConfirmation,
-        PlayClientWindowConfirmationSpec,
-        test_play_client_window_confirmation,
-        bench_write_play_client_window_confirmation,
-        bench_read_play_client_window_confirmation
-    );
-
-    packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClickWindowButton,
         PlayClickWindowButtonSpec,
         test_play_click_window_button,
@@ -4816,8 +4708,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClickWindow,
         PlayClickWindowSpec,
         test_play_click_window,
@@ -4826,8 +4718,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientCloseWindow,
         PlayClientCloseWindowSpec,
         test_play_client_close_window,
@@ -4836,8 +4728,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientPluginMessage,
         PlayClientPluginMessageSpec,
         test_play_client_plugin_message,
@@ -4846,8 +4738,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEditBook,
         PlayEditBookSpec,
         test_play_edit_book,
@@ -4856,8 +4748,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayInteractEntity,
         PlayInteractEntitySpec,
         test_play_interact_entity,
@@ -4866,8 +4758,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayGenerateStructure,
         PlayGenerateStructureSpec,
         test_play_generate_structure,
@@ -4876,8 +4768,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientKeepAlive,
         PlayClientKeepAliveSpec,
         test_play_client_keep_alive,
@@ -4886,8 +4778,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayLockDifficulty,
         PlayLockDifficultySpec,
         test_play_lock_difficulty,
@@ -4896,8 +4788,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayPlayerPosition,
         PlayPlayerPositionSpec,
         test_play_player_position,
@@ -4906,8 +4798,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientPlayerPositionAndRotation,
         PlayClientPlayerPositionAndRotationSpec,
         test_play_client_player_position_and_rotation,
@@ -4916,8 +4808,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayPlayerRotation,
         PlayPlayerRotationSpec,
         test_play_player_rotation,
@@ -4926,8 +4818,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayPlayerMovement,
         PlayPlayerMovementSpec,
         test_play_player_movement,
@@ -4936,8 +4828,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientVehicleMove,
         PlayClientVehicleMoveSpec,
         test_play_client_vehicle_move,
@@ -4946,8 +4838,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySteerBoat,
         PlaySteerBoatSpec,
         test_play_steer_boat,
@@ -4956,8 +4848,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayPickItem,
         PlayPickItemSpec,
         test_play_pick_item,
@@ -4966,8 +4858,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayCraftRecipeRequest,
         PlayCraftRecipeRequestSpec,
         test_play_craft_recipe_request,
@@ -4976,8 +4868,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientPlayerAbilities,
         PlayClientPlayerAbilitiesSpec,
         test_play_client_player_abilities,
@@ -4986,8 +4878,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayPlayerDigging,
         PlayPlayerDiggingSpec,
         test_play_player_digging,
@@ -4996,8 +4888,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayEntityAction,
         PlayEntityActionSpec,
         test_play_entity_action,
@@ -5006,8 +4898,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySteerVehicle,
         PlaySteerVehicleSpec,
         test_play_steer_vehicle,
@@ -5016,8 +4908,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetDisplayedRecipe,
         PlaySetDisplayedRecipeSpec,
         test_play_set_displayed_recipe,
@@ -5026,8 +4918,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetRecipeBookState,
         PlaySetRecipeBookStateSpec,
         test_play_set_recipe_book_state,
@@ -5036,8 +4928,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayNameItem,
         PlayNameItemSpec,
         test_play_name_item,
@@ -5046,8 +4938,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayResourcePackStatus,
         PlayResourcePackStatusSpec,
         test_play_resource_pack_status,
@@ -5056,8 +4948,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayAdvancementTab,
         PlayAdvancementTabSpec,
         test_play_advancement_tab,
@@ -5066,8 +4958,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySelectTrade,
         PlaySelectTradeSpec,
         test_play_select_trade,
@@ -5076,8 +4968,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySetBeaconEffect,
         PlaySetBeaconEffectSpec,
         test_play_set_beacon_effect,
@@ -5086,8 +4978,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientHeldItemChange,
         PlayClientHeldItemChangeSpec,
         test_play_client_held_item_change,
@@ -5096,8 +4988,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateCommandBlock,
         PlayUpdateCommandBlockSpec,
         test_play_update_command_block,
@@ -5106,8 +4998,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateCommandBlockMinecart,
         PlayUpdateCommandBlockMinecartSpec,
         test_play_update_command_block_minecart,
@@ -5116,8 +5008,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateJigsawBlock,
         PlayUpdateJigsawBlockSpec,
         test_play_update_jigsaw_block,
@@ -5126,8 +5018,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayCreativeInventoryAction,
         PlayCreativeInventoryActionSpec,
         test_play_creative_inventory_action,
@@ -5136,8 +5028,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateStructureBlock,
         PlayUpdateStructureBlockSpec,
         test_play_update_structure_block,
@@ -5146,8 +5038,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUpdateSign,
         PlayUpdateSignSpec,
         test_play_update_sign,
@@ -5156,8 +5048,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayClientAnimation,
         PlayClientAnimationSpec,
         test_play_client_animation,
@@ -5166,8 +5058,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlaySpectate,
         PlaySpectateSpec,
         test_play_spectate,
@@ -5176,8 +5068,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayBlockPlacement,
         PlayBlockPlacementSpec,
         test_play_block_placement,
@@ -5186,8 +5078,8 @@ pub mod tests {
     );
 
     packet_test_cases!(
-        RawPacket759,
-        Packet759,
+        RawPacket763,
+        Packet763,
         PlayUseItem,
         PlayUseItemSpec,
         test_play_use_item,
@@ -5201,7 +5093,7 @@ pub mod tests {
     fn test_generate_test_cases() {
         Packet763::describe().packets.iter().map(move |packet| {
             let snake_case = to_snake_case(packet.name.clone());
-            alloc::format!("packet_test_cases!(RawPacket759, Packet759, {}, {},\n        test_{}, bench_write_{}, bench_read_{});\n",
+            alloc::format!("packet_test_cases!(RawPacket763, Packet763, {}, {},\n        test_{}, bench_write_{}, bench_read_{});\n",
                            packet.name, packet.body_struct, snake_case, snake_case, snake_case).to_owned()
         }).for_each(move |line| {
             println!("{}", line)

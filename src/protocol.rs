@@ -401,8 +401,10 @@ macro_rules! define_protocol {
             }
         }
 
+        use crate::protocol::Id;
         #[derive(PartialEq, Debug)]
         pub struct $rawdt<'a, T> {
+            pub id: Id,
             pub data: &'a [u8],
             _typ: core::marker::PhantomData<T>
         }
@@ -410,11 +412,10 @@ macro_rules! define_protocol {
         impl<'a, T> $rawdt<'a, T> where T: crate::Deserialize {
             pub fn deserialize(&self) -> Result<T, crate::protocol::PacketErr> {
                 use crate::protocol::PacketErr::*;
-				use crate::protocol::HasPacketId;
 
-                let Deserialized { value: body, data: rest } = T::mc_deserialize(self.data).map_err(self.id(), DeserializeFailed)?;
+                let Deserialized { value: body, data: rest } = T::mc_deserialize(self.data).map_err(|err| DeserializeFailed(self.id, err))?;
                 if !rest.is_empty() {
-                    Err(ExtraData(self.id(), rest.to_vec()))
+                    Err(ExtraData(self.id, rest.to_vec()))
                 } else {
                     Ok(body)
                 }
@@ -463,8 +464,10 @@ macro_rules! define_protocol {
 
         impl $kindt {
             fn with_body_data_inner<'a>(self, data: &'a [u8]) -> $rawpackett<'a> {
+				use crate::protocol::HasPacketId;
                 match self {
                     $($kindt::$nam => $rawpackett::$nam($rawdt{
+	                    id: self.id(),
                         data,
                         _typ: core::marker::PhantomData,
                     })),*,
