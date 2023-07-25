@@ -384,6 +384,7 @@ macro_rules! define_protocol {
 
             fn deserialize(&self) -> Result<Self::Packet, crate::protocol::PacketErr> {
                 use crate::protocol::PacketErr::{ExtraData, DeserializeFailed};
+				use crate::protocol::HasPacketId;
 
                 match self {
                     $($rawpackett::$nam(bod) => {
@@ -409,6 +410,7 @@ macro_rules! define_protocol {
         impl<'a, T> $rawdt<'a, T> where T: crate::Deserialize {
             pub fn deserialize(&self) -> Result<T, crate::protocol::PacketErr> {
                 use crate::protocol::PacketErr::*;
+				use crate::protocol::HasPacketId;
 
                 let Deserialized { value: body, data: rest } = T::mc_deserialize(self.data).map_err(self.id(), DeserializeFailed)?;
                 if !rest.is_empty() {
