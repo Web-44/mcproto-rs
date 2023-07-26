@@ -2436,10 +2436,7 @@ impl TestRandom for PlayerInfoActionList {
 
 proto_struct!(PlayerAddActionSpec {
     name: String,
-    properties: CountedArray<PlayerAddProperty, VarInt>,
-    game_mode: GameMode,
-    ping_ms: VarInt,
-    display_name: Option<Chat>
+    properties: CountedArray<PlayerAddProperty, VarInt>
 });
 
 proto_struct!(PlayerInitChatSignatureData {
