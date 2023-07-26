@@ -2272,19 +2272,166 @@ proto_byte_flag!(PlayerAbilityFlags,
 //     message: Chat
 // });
 
-proto_struct!(PlayerInfoAction<A> {
-    uuid: UUID4,
-    action: A
-});
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlayerInfoActionList {
+    pub action_byte: u8,
+    pub entries: Vec<PlayerInfoActionEntry>
+}
 
-proto_byte_enum!(PlayerInfoActionList,
-    0x00 :: Add(CountedArray<PlayerInfoAction<PlayerAddActionSpec>, VarInt>),
-    0x01 :: InitChat(CountedArray<Option<PlayerInitChatSignatureData>, VarInt>),
-    0x02 :: UpdateGameMode(CountedArray<PlayerInfoAction<GameMode>, VarInt>),
-    0x03 :: UpdateListed(CountedArray<PlayerInfoAction<bool>, VarInt>),
-    0x04 :: UpdateLatency(CountedArray<PlayerInfoAction<VarInt>, VarInt>),
-    0x05 :: UpdateDisplayName(CountedArray<PlayerInfoAction<Option<Chat>>, VarInt>)
-);
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlayerInfoActionEntry {
+    pub uuid: UUID4,
+    pub actions: Vec<PlayerInfoActionData>
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PlayerInfoActionData {
+    Add(PlayerAddActionSpec),
+    InitializeChat(Option<PlayerInitChatSignatureData>),
+    UpdateGamemode(VarInt),
+    UpdateListed(bool),
+    UpdateLatency(VarInt),
+    UpdateDisplayName(Option<Chat>)
+}
+
+impl Serialize for PlayerInfoActionList {
+    fn mc_serialize<S: Serializer>(&self, to: &mut S) -> SerializeResult {
+        to.serialize_byte(self.action_byte)?;
+        to.serialize_other(&VarInt(self.entries.len() as i32))?;
+        for entry in &self.entries {
+            to.serialize_other(&entry.uuid)?;
+
+            for action in &entry.actions {
+                match action {
+                    PlayerInfoActionData::Add(spec) => to.serialize_other(spec)?,
+                    PlayerInfoActionData::InitializeChat(spec) => to.serialize_other(spec)?,
+                    PlayerInfoActionData::UpdateGamemode(spec) => to.serialize_other(spec)?,
+                    PlayerInfoActionData::UpdateListed(spec) => to.serialize_other(spec)?,
+                    PlayerInfoActionData::UpdateLatency(spec) => to.serialize_other(spec)?,
+                    PlayerInfoActionData::UpdateDisplayName(spec) => to.serialize_other(spec)?,
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Deserialize for PlayerInfoActionList {
+    fn mc_deserialize(data: &[u8]) -> DeserializeResult<Self> {
+        let Deserialized {
+            value: action_byte,
+            data: rest,
+        } = u8::mc_deserialize(data)?;
+
+        let add_player = action_byte & 0b10000000 > 0;
+        let init_chat = action_byte & 0b01000000 > 0;
+        let update_gamemode = action_byte & 0b00100000 > 0;
+        let update_listed = action_byte & 0b00010000 > 0;
+        let update_latency = action_byte & 0b00001000 > 0;
+        let update_display_name = action_byte & 0b00000100 > 0;
+
+        let Deserialized {
+            value: VarInt(count),
+            data: rest,
+        } = VarInt::mc_deserialize(rest)?;
+
+        let mut data = rest;
+
+        let mut entries = vec![];
+        for _ in 0..count {
+            let Deserialized {
+                value: uuid,
+                data: rest,
+            } = UUID4::mc_deserialize(data)?;
+            data = rest;
+
+            let mut actions = vec![];
+
+            if add_player {
+                let Deserialized {
+                    value: action,
+                    data: rest,
+                } = PlayerAddActionSpec::mc_deserialize(data)?;
+                data = rest;
+
+                actions.push(PlayerInfoActionData::Add(action));
+            }
+
+            if init_chat {
+                let Deserialized {
+                    value: action,
+                    data: rest,
+                } = <Option<PlayerInitChatSignatureData>>::mc_deserialize(data)?;
+                data = rest;
+
+                actions.push(PlayerInfoActionData::InitializeChat(action));
+            }
+
+            if update_gamemode {
+                let Deserialized {
+                    value: action,
+                    data: rest,
+                } = VarInt::mc_deserialize(data)?;
+                data = rest;
+
+                actions.push(PlayerInfoActionData::UpdateGamemode(action));
+            }
+
+            if update_listed {
+                let Deserialized {
+                    value: action,
+                    data: rest,
+                } = bool::mc_deserialize(data)?;
+                data = rest;
+
+                actions.push(PlayerInfoActionData::UpdateListed(action));
+            }
+
+            if update_latency {
+                let Deserialized {
+                    value: action,
+                    data: rest,
+                } = VarInt::mc_deserialize(data)?;
+                data = rest;
+
+                actions.push(PlayerInfoActionData::UpdateLatency(action));
+            }
+
+            if update_display_name {
+                let Deserialized {
+                    value: action,
+                    data: rest,
+                } = <Option<Chat>>::mc_deserialize(data)?;
+                data = rest;
+
+                actions.push(PlayerInfoActionData::UpdateDisplayName(action));
+            }
+
+            entries.push(PlayerInfoActionEntry {
+                uuid,
+                actions
+            });
+        }
+
+        Ok(Deserialized {
+            value: PlayerInfoActionList {
+                action_byte,
+                entries
+            },
+            data
+        })
+    }
+}
+
+impl TestRandom for PlayerInfoActionList {
+    fn test_gen_random() -> Self {
+        Self {
+            action_byte: u8::test_gen_random(),
+            entries: vec![]
+        }
+    }
+}
 
 proto_struct!(PlayerAddActionSpec {
     name: String,
