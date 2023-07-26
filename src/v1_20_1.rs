@@ -2424,6 +2424,7 @@ impl Deserialize for PlayerInfoActionList {
     }
 }
 
+#[cfg(all(test, feature = "std"))]
 impl TestRandom for PlayerInfoActionList {
     fn test_gen_random() -> Self {
         Self {
