@@ -2324,12 +2324,12 @@ impl Deserialize for PlayerInfoActionList {
             data: rest,
         } = u8::mc_deserialize(data)?;
 
-        let add_player = action_byte & 0b10000000 > 0;
-        let init_chat = action_byte & 0b01000000 > 0;
-        let update_gamemode = action_byte & 0b00100000 > 0;
-        let update_listed = action_byte & 0b00010000 > 0;
-        let update_latency = action_byte & 0b00001000 > 0;
-        let update_display_name = action_byte & 0b00000100 > 0;
+        let add_player = action_byte & 0b00000001 > 0;
+        let init_chat = action_byte & 0b00000010 > 0;
+        let update_gamemode = action_byte & 0b00000100 > 0;
+        let update_listed = action_byte & 0b00001000 > 0;
+        let update_latency = action_byte & 0b00010000 > 0;
+        let update_display_name = action_byte & 0b00100000 > 0;
 
         let Deserialized {
             value: VarInt(count),
