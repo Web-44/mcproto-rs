@@ -1066,16 +1066,8 @@ proto_struct!(DeathLocation {
     location: IntPosition
 });
 
-proto_str_enum!(TagType,
-    "minecraft:block" :: Block,
-    "minecraft:item" :: Item,
-    "minecraft:fluid" :: Fluid,
-    "minecraft:entity_type" :: EntityType,
-    "minecraft:game_event" :: GameEvent
-);
-
 proto_struct!(TypedTagList {
-    tag_type: TagType,
+    tag_type: String,
     tags: CountedArray<TagSpec, VarInt>
 });
 
