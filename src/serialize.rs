@@ -5,7 +5,7 @@ pub enum SerializeErr {
     FailedJsonEncode(String),
     CannotSerialize(String),
     #[cfg(feature = "hematite-nbt")]
-    NbtError(std::rc::Rc<nbt::Error>)
+    NbtError(std::sync::Arc<nbt::Error>)
 }
 
 impl fmt::Display for SerializeErr {

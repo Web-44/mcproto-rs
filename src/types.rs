@@ -366,7 +366,7 @@ impl Serialize for NamedNbtTag {
     #[cfg(feature = "hematite-nbt")]
     fn mc_serialize<S: Serializer>(&self, to: &mut S) -> SerializeResult {
         let mut bytes = vec![];
-        self.root.to_writer(&mut bytes).map_err(|err| SerializeErr::NbtError(std::rc::Rc::new(err)))?;
+        self.root.to_writer(&mut bytes).map_err(|err| SerializeErr::NbtError(std::sync::Arc::new(err)))?;
         to.serialize_bytes(bytes.as_slice())
     }
 }
@@ -383,7 +383,7 @@ impl Deserialize for NamedNbtTag {
     #[cfg(feature = "hematite-nbt")]
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<Self> {
         let mut cursor = Cursor::new(data);
-        let blob = nbt::Blob::from_reader(&mut cursor).map_err(|err| DeserializeErr::NbtError(std::rc::Rc::new(err)))?;
+        let blob = nbt::Blob::from_reader(&mut cursor).map_err(|err| DeserializeErr::NbtError(std::sync::Arc::new(err)))?;
         let pos = cursor.position() as usize;
         drop(cursor);
         Ok(Deserialized {
@@ -558,7 +558,7 @@ impl Serialize for ItemStack {
         match self.nbt.as_ref() {
             Some(nbt) => {
                 let mut bytes = Vec::new();
-                nbt.to_writer(&mut bytes).map_err(|err| SerializeErr::NbtError(std::rc::Rc::new(err)))?;
+                nbt.to_writer(&mut bytes).map_err(|err| SerializeErr::NbtError(std::sync::Arc::new(err)))?;
                 to.serialize_bytes(&bytes)
             }
             None => to.serialize_byte(0)

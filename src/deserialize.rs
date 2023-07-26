@@ -17,7 +17,7 @@ pub enum DeserializeErr {
     CannotUnderstandValue(String),
     FailedJsonDeserialize(String),
     #[cfg(feature = "hematite-nbt")]
-    NbtError(std::rc::Rc<nbt::Error>)
+    NbtError(std::sync::Arc<nbt::Error>)
 }
 
 impl fmt::Display for DeserializeErr {
