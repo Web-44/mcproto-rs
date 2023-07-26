@@ -1493,9 +1493,10 @@ proto_struct!(CommandLiteralNodeSpec { name: String });
 
 proto_str_enum!(CommandParserSpec,
     "brigadier:bool" :: Bool,
-    "brigadier:double" :: Double(DoubleParserProps),
     "brigadier:float" :: Float(FloatParserProps),
+    "brigadier:double" :: Double(DoubleParserProps),
     "brigadier:integer" :: Integer(IntegerParserProps),
+    "brigadier:long" :: Long(LongParserProps),
     "brigadier:string" :: StringParser(StringParserMode),
     "minecraft:entity" :: Entity(EntityParserFlags),
     "minecraft:game_profile" :: GameProfile,
@@ -1511,32 +1512,35 @@ proto_str_enum!(CommandParserSpec,
     "minecraft:component" :: Component,
     "minecraft:message" :: Message,
     "minecraft:nbt" :: Nbt,
+    "minecraft:nbt_tag" :: NbtTag,
     "minecraft:nbt_path" :: NbtPath,
     "minecraft:objective" :: Objective,
     "minecraft:objective_criteria" :: ObjectiveCriteria,
     "minecraft:operation" :: Operation,
     "minecraft:particle" :: Particle,
-    "minecraft:rotation" :: Rotation,
     "minecraft:angle" :: Angle,
+    "minecraft:rotation" :: Rotation,
     "minecraft:scoreboard_slot" :: ScoreboardSlot,
     "minecraft:score_holder" :: ScoreHolder(ScoreHolderFlags),
     "minecraft:swizzle" :: Swizzle,
     "minecraft:team" :: Team,
     "minecraft:item_slot" :: ItemSlot,
     "minecraft:resource_location" :: ResourceLocation,
-    "minecraft:mob_effect" :: MobEffect,
     "minecraft:function" :: Function,
     "minecraft:entity_anchor" :: EntityAnchor,
-    "minecraft:range" :: Range(RangeParserProps),
     "minecraft:int_range" :: IntRange,
     "minecraft:float_range" :: FloatRange,
-    "minecraft:item_enchantment" :: ItemEnchantment,
-    "minecraft:entity_summon" :: EntitySummon,
     "minecraft:dimension" :: Dimension,
-    "minecraft:uuid" :: UUID,
-    "minecraft:nbt_tag" :: NbtTag,
-    "minecraft:nbt_compound_tag" :: NbtCompoundTag,
-    "minecraft:time" :: Time
+    "minecraft:gamemode" :: Gamemode,
+    "minecraft:time" :: Time(i32),
+    "minecraft:resource_or_tag" :: ResourceOrTag(String),
+    "minecraft:resource_or_tag_key" :: ResourceOrTagKey(String),
+    "minecraft:resource" :: Resource(String),
+    "minecraft:resource_key" :: ResourceKey(String),
+    "minecraft:template_mirror" :: TemplateMirror,
+    "minecraft:template_rotation" :: TemplateRotation,
+    "minecraft:heightmap" :: HeightMap,
+    "minecraft:uuid" :: UUID
 );
 
 pub struct NumParserProps<T> {
@@ -1549,6 +1553,8 @@ pub type DoubleParserProps = NumParserProps<f64>;
 pub type FloatParserProps = NumParserProps<f32>;
 
 pub type IntegerParserProps = NumParserProps<i32>;
+
+pub type LongParserProps = NumParserProps<i64>;
 
 impl<T> Copy for NumParserProps<T> where T: Copy {}
 
