@@ -31,7 +31,6 @@ default = [ "std", "v1_20_1", "hematite-nbt" ]
 std = [ "rand" ]
 bench = []
 gat = []
-hematite_nbt = ["hematite-nbt"]
 
 v1_15_2 = []
 v1_16_3 = []
