@@ -110,7 +110,7 @@ define_protocol!(763, Packet763, RawPacket763, RawPacket763Body, Packet763Kind =
     },
     PlayBlockEntityData, 0x08, Play, ClientBound => PlayBlockEntityDataSpec {
         location: IntPosition,
-        action: BlockEntityDataAction,
+        entity_type: VarInt,
         nbt_data: NamedNbtTag
     },
     PlayBlockAction, 0x09, Play, ClientBound => PlayBlockActionSpec {
@@ -939,22 +939,6 @@ proto_byte_enum!(DiggingStatus,
     0x00 :: Started,
     0x01 :: Cancelled,
     0x02 :: Finished
-);
-
-proto_byte_enum!(BlockEntityDataAction,
-    0x01 :: SetMobSpawnerData,
-    0x02 :: SetCommandBlockText,
-    0x03 :: SetBeaconLevelAndPower,
-    0x04 :: SetMobHeadRotationAndSkin,
-    0x05 :: DeclareConduit,
-    0x06 :: SetBannerColorAndPatterns,
-    0x07 :: SetStructureTileEntityData,
-    0x08 :: SetEndGatewayDestination,
-    0x09 :: SetSignText,
-    0x0B :: DeclareBed,
-    0x0C :: SetJigsawBlockData,
-    0x0D :: SetCampfireItems,
-    0x0E :: BeehiveInformation
 );
 
 proto_byte_enum!(Difficulty,
