@@ -2277,7 +2277,7 @@ proto_struct!(PlayerInfoAction<A> {
     action: A
 });
 
-proto_varint_enum!(PlayerInfoActionList,
+proto_byte_enum!(PlayerInfoActionList,
     0x00 :: Add(CountedArray<PlayerInfoAction<PlayerAddActionSpec>, VarInt>),
     0x01 :: InitChat(CountedArray<Option<PlayerInitChatSignatureData>, VarInt>),
     0x02 :: UpdateGameMode(CountedArray<PlayerInfoAction<GameMode>, VarInt>),
