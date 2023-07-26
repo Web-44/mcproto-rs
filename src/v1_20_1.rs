@@ -1475,56 +1475,56 @@ proto_str_enum!(SuggestionsTypeSpec,
 
 proto_struct!(CommandLiteralNodeSpec { name: String });
 
-proto_str_enum!(CommandParserSpec,
-    "brigadier:bool" :: Bool,
-    "brigadier:float" :: Float(FloatParserProps),
-    "brigadier:double" :: Double(DoubleParserProps),
-    "brigadier:integer" :: Integer(IntegerParserProps),
-    "brigadier:long" :: Long(LongParserProps),
-    "brigadier:string" :: StringParser(StringParserMode),
-    "minecraft:entity" :: Entity(EntityParserFlags),
-    "minecraft:game_profile" :: GameProfile,
-    "minecraft:block_pos" :: BlockPosition,
-    "minecraft:column_pos" :: ColumnPosition,
-    "minecraft:vec3" :: Vec3,
-    "minecraft:vec2" :: Vec2,
-    "minecraft:block_state" :: BlockState,
-    "minecraft:block_predicate" :: BlockPredicate,
-    "minecraft:item_stack" :: ItemStack,
-    "minecraft:item_predicate" :: ItemPredicate,
-    "minecraft:color" :: Color,
-    "minecraft:component" :: Component,
-    "minecraft:message" :: Message,
-    "minecraft:nbt" :: Nbt,
-    "minecraft:nbt_tag" :: NbtTag,
-    "minecraft:nbt_path" :: NbtPath,
-    "minecraft:objective" :: Objective,
-    "minecraft:objective_criteria" :: ObjectiveCriteria,
-    "minecraft:operation" :: Operation,
-    "minecraft:particle" :: Particle,
-    "minecraft:angle" :: Angle,
-    "minecraft:rotation" :: Rotation,
-    "minecraft:scoreboard_slot" :: ScoreboardSlot,
-    "minecraft:score_holder" :: ScoreHolder(ScoreHolderFlags),
-    "minecraft:swizzle" :: Swizzle,
-    "minecraft:team" :: Team,
-    "minecraft:item_slot" :: ItemSlot,
-    "minecraft:resource_location" :: ResourceLocation,
-    "minecraft:function" :: Function,
-    "minecraft:entity_anchor" :: EntityAnchor,
-    "minecraft:int_range" :: IntRange,
-    "minecraft:float_range" :: FloatRange,
-    "minecraft:dimension" :: Dimension,
-    "minecraft:gamemode" :: Gamemode,
-    "minecraft:time" :: Time(i32),
-    "minecraft:resource_or_tag" :: ResourceOrTag(String),
-    "minecraft:resource_or_tag_key" :: ResourceOrTagKey(String),
-    "minecraft:resource" :: Resource(String),
-    "minecraft:resource_key" :: ResourceKey(String),
-    "minecraft:template_mirror" :: TemplateMirror,
-    "minecraft:template_rotation" :: TemplateRotation,
-    "minecraft:heightmap" :: HeightMap,
-    "minecraft:uuid" :: UUID
+proto_varint_enum!(CommandParserSpec,
+    0 :: Bool,                              //brigadier:bool
+    1 :: Float(FloatParserProps),           //brigadier:float
+    2 :: Double(DoubleParserProps),         //brigadier:double
+    3 :: Integer(IntegerParserProps),       //brigadier:integer
+    4 :: Long(LongParserProps),             //brigadier:long
+    5 :: StringParser(StringParserMode),    //brigadier:string
+    6 :: Entity(EntityParserFlags),         //minecraft:entity
+    7 :: GameProfile,                       //minecraft:game_profile
+    8 :: BlockPosition,                     //minecraft:block_pos
+    9 :: ColumnPosition,                    //minecraft:column_pos
+    10 :: Vec3,                             //minecraft:vec3
+    11 :: Vec2,                             //minecraft:vec2
+    12 :: BlockState,                       //minecraft:block_state
+    13 :: BlockPredicate,                   //minecraft:block_predicate
+    14 :: ItemStack,                        //minecraft:item_stack
+    15 :: ItemPredicate,                    //minecraft:item_predicate
+    16 :: Color,                            //minecraft:color
+    17 :: Component,                        //minecraft:component
+    18 :: Message,                          //minecraft:message
+    19 :: Nbt,                              //minecraft:nbt
+    20 :: NbtTag,                           //minecraft:nbt_tag
+    21 :: NbtPath,                          //minecraft:nbt_path
+    22 :: Objective,                        //minecraft:objective
+    23 :: ObjectiveCriteria,                //minecraft:objective_criteria
+    24 :: Operation,                        //minecraft:operation
+    25 :: Particle,                         //minecraft:particle
+    26 :: Angle,                            //minecraft:angle
+    27 :: Rotation,                         //minecraft:rotation
+    28 :: ScoreboardSlot,                   //minecraft:scoreboard_slot
+    29 :: ScoreHolder(ScoreHolderFlags),    //minecraft:score_holder
+    30 :: Swizzle,                          //minecraft:swizzle
+    31 :: Team,                             //minecraft:team
+    32 :: ItemSlot,                         //minecraft:item_slot
+    33 :: ResourceLocation,                 //minecraft:resource_location
+    34 :: Function,                         //minecraft:function
+    35 :: EntityAnchor,                     //minecraft:entity_anchor
+    36 :: IntRange,                         //minecraft:int_range
+    37 :: FloatRange,                       //minecraft:float_range
+    38 :: Dimension,                        //minecraft:dimension
+    39 :: Gamemode,                         //minecraft:gamemode
+    40 :: Time(i32),                        //minecraft:time
+    41 :: ResourceOrTag(String),            //minecraft:resource_or_tag
+    42 :: ResourceOrTagKey(String),         //minecraft:resource_or_tag_key
+    43 :: Resource(String),                 //minecraft:resource
+    44 :: ResourceKey(String),              //minecraft:resource_key
+    45 :: TemplateMirror,                   //minecraft:template_mirror
+    46 :: TemplateRotation,                 //minecraft:template_rotation
+    47 :: HeightMap,                        //minecraft:heightmap
+    48 :: UUID                              //minecraft:uuid
 );
 
 pub struct NumParserProps<T> {
