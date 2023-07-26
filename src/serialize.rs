@@ -1,8 +1,11 @@
 use alloc::{string::String, fmt};
 
+#[derive(Clone)]
 pub enum SerializeErr {
     FailedJsonEncode(String),
     CannotSerialize(String),
+    #[cfg(feature = "hematite-nbt")]
+    NbtError(std::rc::Rc<nbt::Error>)
 }
 
 impl fmt::Display for SerializeErr {
@@ -14,6 +17,10 @@ impl fmt::Display for SerializeErr {
             }
             CannotSerialize(message) => {
                 f.write_fmt(format_args!("cannot serialize value, invalid representation: {:?}", message))
+            }
+            #[cfg(feature = "hematite-nbt")]
+            NbtError(err) => {
+                f.write_fmt(format_args!("nbt error: {:?}", err))
             }
         }
     }

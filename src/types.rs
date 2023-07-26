@@ -1,6 +1,7 @@
 // ... PRIMITIVE TYPES ...
 
 use alloc::{string::String, vec::Vec, fmt};
+use std::io::Cursor;
 use crate::utils::*;
 use crate::uuid::UUID4;
 use crate::*;
@@ -349,42 +350,79 @@ impl TestRandom for UUID4 {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct NamedNbtTag {
+    #[cfg(not(feature = "hematite-nbt"))]
     pub root: nbt::NamedTag,
+    #[cfg(feature = "hematite-nbt")]
+    pub root: nbt::Blob
 }
 
 impl Serialize for NamedNbtTag {
+    #[cfg(not(feature = "hematite-nbt"))]
     fn mc_serialize<S: Serializer>(&self, to: &mut S) -> SerializeResult {
         let bytes = self.root.bytes();
+        to.serialize_bytes(bytes.as_slice())
+    }
+
+    #[cfg(feature = "hematite-nbt")]
+    fn mc_serialize<S: Serializer>(&self, to: &mut S) -> SerializeResult {
+        let mut bytes = vec![];
+        self.root.to_writer(&mut bytes).map_err(|err| SerializeErr::NbtError(std::rc::Rc::new(err)))?;
         to.serialize_bytes(bytes.as_slice())
     }
 }
 
 impl Deserialize for NamedNbtTag {
+    #[cfg(not(feature = "hematite-nbt"))]
     fn mc_deserialize(data: &[u8]) -> DeserializeResult<'_, Self> {
         Ok(
             nbt::NamedTag::root_compound_tag_from_bytes(data)?
                 .map(move |root| NamedNbtTag { root }),
         )
     }
+
+    #[cfg(feature = "hematite-nbt")]
+    fn mc_deserialize(data: &[u8]) -> DeserializeResult<Self> {
+        let mut cursor = Cursor::new(data);
+        let blob = nbt::Blob::from_reader(&mut cursor).map_err(|err| DeserializeErr::NbtError(std::rc::Rc::new(err)))?;
+        let pos = cursor.position() as usize;
+        drop(cursor);
+        Ok(Deserialized {
+            value: NamedNbtTag {
+                root: blob
+            },
+            data: &data[pos..]
+        })
+    }
 }
 
+#[cfg(not(feature = "hematite-nbt"))]
 impl From<nbt::NamedTag> for NamedNbtTag {
     fn from(root: nbt::NamedTag) -> Self {
         Self { root }
     }
 }
 
+#[cfg(not(feature = "hematite-nbt"))]
 impl Into<nbt::NamedTag> for NamedNbtTag {
     fn into(self) -> nbt::NamedTag {
         self.root
     }
 }
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, feature = "std", not(feature = "hematite-nbt")))]
 impl TestRandom for NamedNbtTag {
     fn test_gen_random() -> Self {
         Self {
             root: nbt::NamedTag::test_gen_random(),
+        }
+    }
+}
+
+#[cfg(all(test, feature = "std", feature = "hematite-nbt"))]
+impl TestRandom for NamedNbtTag {
+    fn test_gen_random() -> Self {
+        Self {
+            root: nbt::Blob::new(),
         }
     }
 }
@@ -499,16 +537,31 @@ impl<T> TestRandom for Option<T>
 pub struct ItemStack {
     pub item_id: VarInt,
     pub item_count: i8,
+    #[cfg(not(feature = "hematite-nbt"))]
     pub nbt: Option<nbt::NamedTag>,
+    #[cfg(feature = "hematite-nbt")]
+    pub nbt: Option<nbt::Blob>,
 }
 
 impl Serialize for ItemStack {
     fn mc_serialize<S: Serializer>(&self, to: &mut S) -> SerializeResult {
         to.serialize_other(&self.item_id)?;
         to.serialize_other(&self.item_count)?;
+
+        #[cfg(not(feature = "hematite-nbt"))]
         match self.nbt.as_ref() {
             Some(nbt) => to.serialize_bytes(nbt.bytes().as_slice()),
             None => to.serialize_byte(nbt::Tag::End.id()),
+        }
+
+        #[cfg(feature = "hematite-nbt")]
+        match self.nbt.as_ref() {
+            Some(nbt) => {
+                let mut bytes = Vec::new();
+                nbt.to_writer(&mut bytes).map_err(|err| SerializeErr::NbtError(std::rc::Rc::new(err)))?;
+                to.serialize_bytes(&bytes)
+            }
+            None => to.serialize_byte(0)
         }
     }
 }
@@ -528,7 +581,14 @@ impl Deserialize for ItemStack {
                 value: None,
                 data: rest,
             },
-            _ => nbt::read_named_tag(data)?.map(move |tag| Some(tag)),
+            #[cfg(not(feature = "hematite-nbt"))]
+            _ => {
+                nbt::read_named_tag(data)?.map(move |tag| Some(tag))
+            },
+            #[cfg(feature = "hematite-nbt")]
+            _ => {
+                NamedNbtTag::mc_deserialize(&data)?.map(|tag| Some(tag.root))
+            },
         }.map(move |nbt| Self {
             item_id,
             item_count,
@@ -542,7 +602,10 @@ impl TestRandom for ItemStack {
     fn test_gen_random() -> Self {
         let item_id = VarInt::test_gen_random();
         let item_count = i8::test_gen_random() % 65;
+        #[cfg(not(feature = "hematite-nbt"))]
         let nbt = <Option<nbt::NamedTag>>::test_gen_random();
+        #[cfg(feature = "hematite-nbt")]
+        let nbt = Some(nbt::Blob::new());
 
         Self {
             item_id,
@@ -1002,6 +1065,7 @@ mod tests {
         test_type(String::from("hello my name is joey 123").repeat(1000));
     }
 
+    #[cfg(not(feature = "hematite-nbt"))]
     #[test]
     fn test_nbt() {
         test_type(NamedNbtTag {

@@ -15,6 +15,8 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 base64 = { version = "0.12.3", default-features = false, features = ["alloc"] }
 rand = { version = "0.7", optional = true }
 
+hematite-nbt = { version = "*", optional = true }
+
 [dependencies.serde]
 version = "1.0.116"
 features = [ "derive", "alloc" ]
@@ -24,11 +26,12 @@ default-features = false
 flate2 = "1.0.17"
 
 [features]
-default = [ "std" ]
+default = [ "std", "v1_20_1", "hematite-nbt" ]
 
 std = [ "rand" ]
 bench = []
 gat = []
+hematite_nbt = ["hematite-nbt"]
 
 v1_15_2 = []
 v1_16_3 = []

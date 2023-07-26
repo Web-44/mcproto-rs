@@ -8,11 +8,16 @@ pub enum DeserializeErr {
     NegativeLength(VarInt),
     BadStringEncoding(FromUtf8Error),
     InvalidBool(u8),
+    #[cfg(not(feature = "hematite-nbt"))]
     NbtUnknownTagType(u8),
+    #[cfg(not(feature = "hematite-nbt"))]
     NbtBadLength(isize),
+    #[cfg(not(feature = "hematite-nbt"))]
     NbtInvalidStartTag(u8),
     CannotUnderstandValue(String),
     FailedJsonDeserialize(String),
+    #[cfg(feature = "hematite-nbt")]
+    NbtError(std::rc::Rc<nbt::Error>)
 }
 
 impl fmt::Display for DeserializeErr {
@@ -34,8 +39,11 @@ impl fmt::Display for DeserializeErr {
                 "could not decode boolean, unexpected byte: {:?}",
                 value
             )),
+            #[cfg(not(feature = "hematite-nbt"))]
             NbtUnknownTagType(data) => f.write_fmt(format_args!("nbt: bad tag type {}", data)),
+            #[cfg(not(feature = "hematite-nbt"))]
             NbtBadLength(data) => f.write_fmt(format_args!("nbt: bad length {:?}", data)),
+            #[cfg(not(feature = "hematite-nbt"))]
             NbtInvalidStartTag(data) => {
                 f.write_fmt(format_args!("nbt: unexpected start tag id: {:?}", data))
             }
@@ -44,6 +52,10 @@ impl fmt::Display for DeserializeErr {
             }
             FailedJsonDeserialize(data) => {
                 f.write_fmt(format_args!("failed to deserialize json: {:?}", data))
+            }
+            #[cfg(feature = "hematite-nbt")]
+            NbtError(err) => {
+                f.write_fmt(format_args!("nbt error: {:?}", err))
             }
         }
     }

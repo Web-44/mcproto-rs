@@ -10,6 +10,7 @@ extern crate test;
 pub mod byte_order;
 mod chat;
 mod deserialize;
+#[cfg(not(feature = "hematite-nbt"))]
 pub mod nbt;
 pub mod protocol;
 mod serialize;
