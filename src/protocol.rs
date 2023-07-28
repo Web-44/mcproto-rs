@@ -1,5 +1,6 @@
 use crate::{Deserialize, DeserializeErr, Serialize, Serializer, SerializeResult};
 use alloc::{string::String, fmt, vec::Vec, borrow::ToOwned};
+use core::fmt::Debug;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PacketDirection {
@@ -99,7 +100,7 @@ pub trait HasPacketKind {
     fn kind(&self) -> Self::Kind;
 }
 
-pub trait PacketKind: HasPacketId + Clone + Copy + PartialEq + Eq {
+pub trait PacketKind: HasPacketId + Clone + Copy + Debug + PartialEq + Eq {
 
     #[cfg(feature = "gat")]
     type RawPacket<'a>: RawPacket<'a>;

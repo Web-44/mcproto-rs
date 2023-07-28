@@ -764,6 +764,7 @@ macro_rules! def_vector_type {
     };
 }
 
+def_vector_type!(Vec4, x, y, z, w);
 def_vector_type!(Vec3, x, y, z);
 def_vector_type!(Vec2, x, y);
 def_vector_type!(ChunkPosition, x, z);

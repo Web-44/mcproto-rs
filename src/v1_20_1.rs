@@ -256,7 +256,7 @@ define_protocol!(763, Packet763, RawPacket763, RawPacket763Body, Packet763Kind =
         disable_relative_volume: bool
     },
     PlayParticle, 0x26, Play, ClientBound => PlayParticleSpec {
-        particle_id: i32,
+        particle_id: VarInt,
         long_distance: bool,
         position: Vec3<f64>,
         offset: Vec3<f32>,
@@ -2324,12 +2324,12 @@ impl Deserialize for PlayerInfoActionList {
             data: rest,
         } = u8::mc_deserialize(data)?;
 
-        let add_player = action_byte & 0b10000000 > 0;
-        let init_chat = action_byte & 0b01000000 > 0;
-        let update_gamemode = action_byte & 0b00100000 > 0;
-        let update_listed = action_byte & 0b00010000 > 0;
-        let update_latency = action_byte & 0b00001000 > 0;
-        let update_display_name = action_byte & 0b00000100 > 0;
+        let add_player = action_byte & 0b00000001 > 0;
+        let init_chat = action_byte & 0b00000010 > 0;
+        let update_gamemode = action_byte & 0b00000100 > 0;
+        let update_listed = action_byte & 0b00001000 > 0;
+        let update_latency = action_byte & 0b00010000 > 0;
+        let update_display_name = action_byte & 0b00100000 > 0;
 
         let Deserialized {
             value: VarInt(count),
@@ -2699,7 +2699,8 @@ proto_struct!(AdvancementSpec {
     parent: Option<String>,
     display: Option<AdvancementDisplaySpec>,
     criteria: CountedArray<String, VarInt>,
-    requirements: CountedArray<CountedArray<String, VarInt>, VarInt>
+    requirements: CountedArray<CountedArray<String, VarInt>, VarInt>,
+    telemetry: bool
 });
 
 proto_struct!(AdvancementDisplaySpec {
@@ -2900,7 +2901,7 @@ proto_varint_enum!(PlayerDiggingStatus,
     0x02 :: Finished,
     0x03 :: DropStack,
     0x04 :: DropItem,
-    0x05 :: ShootArrowOrFishEating,
+    0x05 :: ShootArrowOrFinishEating,
     0x06 :: SwapItemInHand
 );
 
@@ -3602,25 +3603,34 @@ pub struct EntityMetadataField {
 }
 
 proto_varint_enum!(EntityMetadataFieldData,
-    0x00 :: Byte(i8),
-    0x01 :: VarInt(VarInt),
-    0x02 :: Float(f32),
-    0x03 :: String(String),
-    0x04 :: Chat(Chat),
-    0x05 :: OptChat(Option<Chat>),
-    0x06 :: Slot(Slot),
-    0x07 :: Boolean(bool),
-    0x08 :: Rotation(Vec3<f32>),
-    0x09 :: Position(IntPosition),
-    0x0A :: OptPosition(Option<IntPosition>),
-    0x0B :: Direction(EntityDirection),
-    0x0C :: OptUUID(Option<UUID4>),
-    0x0D :: OptBlockId(VarInt),
-    0x0E :: NBT(NamedNbtTag),
-    0x0F :: Particle(ParticleSpec),
-    0x10 :: VillagerData(EntityVillagerData),
-    0x11 :: OptVarInt(VarInt),
-    0x12 :: Pose(EntityPose)
+    0 :: Byte(i8),
+    1 :: VarInt(VarInt),
+    2 :: VarLong(VarLong),
+    3 :: Float(f32),
+    4 :: String(String),
+    5 :: Chat(Chat),
+    6 :: OptChat(Option<Chat>),
+    7 :: Slot(Slot),
+    8 :: Boolean(bool),
+    9 :: Rotation(Vec3<f32>),
+    10 :: Position(IntPosition),
+    11 :: OptPosition(Option<IntPosition>),
+    12 :: Direction(EntityDirection),
+    13 :: OptUUID(Option<UUID4>),
+    14 :: BlockId(VarInt),
+    15 :: OptBlockId(VarInt),
+    16 :: NBT(NamedNbtTag),
+    17 :: Particle(ParticleSpec),
+    18 :: VillagerData(EntityVillagerData),
+    19 :: OptVarInt(VarInt),
+    20 :: Pose(EntityPose),
+    21 :: CatVariant(VarInt),
+    22 :: FrogVariant(VarInt),
+    23 :: OptGlobalPos(Option<GlobalPosition>),
+    24 :: PaintingVariant(VarInt),
+    25 :: SnifferState(SnifferState),
+	26 :: Vector3(Vec3<f32>),
+    27 :: Quaternion(Vec4<f32>)
 );
 
 proto_varint_enum!(EntityDirection,
@@ -3631,6 +3641,21 @@ proto_varint_enum!(EntityDirection,
     0x04 :: West,
     0x05 :: East
 );
+
+proto_varint_enum!(SnifferState,
+    0x00 :: Idling,
+    0x01 :: FeelingHappy,
+    0x02 :: Scenting,
+    0x03 :: Sniffing,
+    0x04 :: Searching,
+    0x05 :: Digging,
+    0x06 :: Rising
+);
+
+proto_struct!(GlobalPosition {
+    dimension: String,
+    position: IntPosition
+});
 
 proto_struct!(EntityVillagerData {
     villager_type: VillagerType,
@@ -3674,7 +3699,14 @@ proto_varint_enum!(EntityPose,
     0x04 :: SpinAttack,
     0x05 :: Sneaking,
     0x06 :: LongJumping,
-    0x07 :: Dying
+    0x07 :: Dying,
+    0x08 :: Croaking,
+    0x09 :: UsingTongue,
+    0x0A :: Sitting,
+    0x0B :: Roaring,
+    0x0C :: Sniffing,
+    0x0D :: Emerging,
+    0x0E :: Digging
 );
 
 proto_varint_enum!(ParticleSpec,

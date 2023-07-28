@@ -192,11 +192,13 @@ fn write_contents<F>(contents: &Vec<F>) -> String
 
 // reads from the root level
 fn read_nbt_data(data: &[u8]) -> DeserializeResult<NamedTag> {
-    let Deserialized { value: tag_type_id, data: _ } = ProtoByteOrder::read_ubyte(data)?;
+    /*let Deserialized { value: tag_type_id, data: _ } = ProtoByteOrder::read_ubyte(data)?;
     match tag_type_id {
         0x0A => read_named_tag(data),
+        0x00 => Deserialized::ok(Tag::End.with_name(""), data),
         other => Err(DeserializeErr::NbtInvalidStartTag(other)),
-    }
+    }*/
+    read_named_tag(data)
 }
 
 // reads any named tag: read id -> read name -> read tag with id -> name tag with name
